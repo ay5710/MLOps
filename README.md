@@ -1,7 +1,7 @@
 # MLOps
 Project for the Deployment of Data Science projets course at ENSAE
-Presentation: https://www.ensae.fr/courses/6052-mise-en-production-des-projets-de-data-science
-Companion website: https://ensae-reproductibilite.github.io/website/
+- Presentation: https://www.ensae.fr/courses/6052-mise-en-production-des-projets-de-data-science
+- Companion website: https://ensae-reproductibilite.github.io/website/
 
 ## Implementation
 
@@ -20,7 +20,7 @@ Working:
 
 Requires a postgreSQL database that cannot be run directly from Python.
 - For now: runs it in the Datalab
-- For later: include a postgreSQL service in the project's Docker container
+- For later: include a postgreSQL service in the project Docker container
 
 A helper class is located in src/utils/db.py which retrieve logging information from the .env file:
 DB_NAME=
