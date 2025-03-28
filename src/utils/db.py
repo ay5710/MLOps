@@ -1,8 +1,10 @@
-import psycopg
-from psycopg import sql
-
 import os
+import pandas as pd
+import psycopg
+
 from dotenv import load_dotenv
+from datetime import datetime
+from psycopg import sql
 
 class PostgreSQLDatabase:
     def __init__(self, dbname, user, password, host='localhost', port=5432):
@@ -61,6 +63,47 @@ class PostgreSQLDatabase:
         except (Exception, psycopg.Error) as error:
             print(f"Error creating table: {error}")
 
+    def backup_table(self, table_name):
+        """
+        Backup a table to a Parquet file in the data/backups/ directory.
+        
+        :param table_name: Name of the table to backup
+        :return: Path to the backup file or None if backup fails
+        """
+        try:
+            # Ensure backup directory exists
+            backup_dir = os.path.join('data', 'backups')
+            os.makedirs(backup_dir, exist_ok=True)
+            
+            # Generate backup filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_filename = f"{table_name}_{timestamp}.parquet"
+            backup_path = os.path.join(backup_dir, backup_filename)
+            
+            # Fetch all data from the table
+            query = sql.SQL("SELECT * FROM {}").format(sql.Identifier(table_name))
+            self.cursor.execute(query)
+            
+            # Get column names
+            column_names = [desc[0] for desc in self.cursor.description]
+            
+            # Fetch all rows
+            rows = self.cursor.fetchall()
+            
+            # Convert to DataFrame
+            df = pd.DataFrame(rows, columns=column_names)
+            
+            # Save as Parquet
+            df.to_parquet(backup_path, index=False)
+            
+            print(f"Table {table_name} backed up to {backup_path}")
+            return None
+        
+        except (Exception, psycopg2.Error) as error:
+            print(f"Error backing up table {table_name}: {error}")
+            return None
+
+    
     def drop_table(self, table_name):
         """
         Drop an existing table from the database.
