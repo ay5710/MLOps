@@ -6,22 +6,18 @@ from dotenv import load_dotenv
 from datetime import datetime
 from psycopg import sql
 
+
 class PostgreSQLDatabase:
-    def __init__(self, dbname, user, password, host='localhost', port=5432):
+    def __init__(self, admin=False):
         """
         Initialize database connection parameters.
-        
-        :param dbname: Name of the database
-        :param user: Database username
-        :param password: Database password
-        :param host: Database host (default: localhost)
-        :param port: Database port (default: 5432)
         """
+        load_dotenv()      
         self.connection_params = {
-            'dbname': dbname,
-            'user': user,
-            'password': password,
-            'host': host,
+            'dbname': os.getenv('DB_NAME'),
+            'user': os.getenv('DB_ADMIN_USER') if admin else os.getenv('DB_USER'),
+            'password': os.getenv('DB_ADMIN_PASSWORD') if admin else os.getenv('DB_PASSWORD'),
+            'host': os.getenv('DB_HOST'),
             'port': 5432
         }
         self.connection = None
@@ -34,10 +30,31 @@ class PostgreSQLDatabase:
         try:
             self.connection = psycopg.connect(**self.connection_params)
             self.cursor = self.connection.cursor()
-            print("Successfully connected to the database")
+            print(f"Successfully connected to {self.connection_params['host']}")
         except (Exception, psycopg.Error) as error:
-            print(f"Error while connecting to PostgreSQL: {error}")
+            print(f"Error while connecting to {self.connection_params['host']}: {error}")
 
+
+    def table_exists(self, table_name):
+        """
+        Check if a table exists in the database.
+
+        :param table_name: Name of the table to check
+        """
+        try:
+            check_query = sql.SQL("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = %s
+                )
+            """)
+            self.cursor.execute(check_query, (table_name,))
+            return self.cursor.fetchone()[0]
+        except (Exception, psycopg.Error) as error:
+            print(f"Error checking if {table_name} exists: {error}")
+            return False
+
+            
     def create_table(self, table_name, columns):
         """
         Create a new table in the database.
@@ -46,7 +63,6 @@ class PostgreSQLDatabase:
         :param columns: Dictionary of column names and their data types
         """
         try:
-            # Construct CREATE TABLE statement
             create_table_query = sql.SQL("CREATE TABLE IF NOT EXISTS {} ({})").format(
                 sql.Identifier(table_name),
                 sql.SQL(', ').join(
@@ -63,12 +79,31 @@ class PostgreSQLDatabase:
         except (Exception, psycopg.Error) as error:
             print(f"Error creating table: {error}")
 
+    
+    def drop_table(self, table_name):
+        """
+        Drop an existing table from the database.
+    
+        :param table_name: Name of the table to drop
+        """
+        try:
+            # Construct DROP TABLE statement
+            drop_table_query = sql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
+                sql.Identifier(table_name)
+            )
+        
+            self.cursor.execute(drop_table_query)
+            self.connection.commit()
+            print(f"Table {table_name} dropped successfully")
+        except (Exception, psycopg.Error) as error:
+            print(f"Error dropping table: {error}")
+
+    
     def backup_table(self, table_name):
         """
         Backup a table to a Parquet file in the data/backups/ directory.
         
         :param table_name: Name of the table to backup
-        :return: Path to the backup file or None if backup fails
         """
         try:
             # Ensure backup directory exists
@@ -99,28 +134,10 @@ class PostgreSQLDatabase:
             print(f"Table {table_name} backed up to {backup_path}")
             return None
         
-        except (Exception, psycopg2.Error) as error:
+        except (Exception, psycopg.Error) as error:
             print(f"Error backing up table {table_name}: {error}")
             return None
 
-    
-    def drop_table(self, table_name):
-        """
-        Drop an existing table from the database.
-    
-        :param table_name: Name of the table to drop
-        """
-        try:
-            # Construct DROP TABLE statement
-            drop_table_query = sql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
-                sql.Identifier(table_name)
-            )
-        
-            self.cursor.execute(drop_table_query)
-            self.connection.commit()
-            print(f"Table {table_name} dropped successfully")
-        except (Exception, psycopg.Error) as error:
-            print(f"Error dropping table: {error}")
     
     def insert_data(self, table_name, data):
         """
@@ -142,7 +159,8 @@ class PostgreSQLDatabase:
             print(f"Inserted {len(data)} rows into {table_name}")
         except (Exception, psycopg.Error) as error:
             print(f"Error inserting data: {error}")
-            
+
+        
     def remove_data(self, table_name, condition_column, condition_value):
         """
         Remove data from a specified table based on a condition.
@@ -166,6 +184,7 @@ class PostgreSQLDatabase:
         except (Exception, psycopg.Error) as error:
             print(f"Error deleting data: {error}")
 
+    
     def query_data(self, table_name, columns='*', condition=None):
         """
         Query data from a specified table.
@@ -205,6 +224,7 @@ class PostgreSQLDatabase:
             print(f"Error querying data: {error}")
             return []
 
+    
     def close_connection(self):
         """
         Close database connection and cursor.
