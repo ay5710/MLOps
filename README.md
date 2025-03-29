@@ -18,9 +18,7 @@ Working:
 
 ## Databases
 
-Requires a postgreSQL database that cannot be run directly from Python.
-- For now: runs it in the Datalab
-- For later: include a postgreSQL service in the project Docker container
+Requires a postgreSQL database that cannot be run directly from Python. It is currently run in the DataLab.
 
 A helper class is located in src/utils/db.py which retrieve logging information from the .env file:
 DB_NAME=
@@ -28,14 +26,11 @@ DB_USER=
 DB_PASSWORD=
 DB_HOST=
 
-Current implementation: two tables, for the reviews as scrapped and the results of sentiment analysis, with a few examples.
+Current implementation: 3 tables, for the movies, the reviews as scrapped, and the results of sentiment analysis.
 
 To do:
-- Check several users can access the same DB, or if a project must be created
-- Create backups and send to S3?
-- Automate the initialisation (creating tables if necessary, loading examples and backups)
 - Switch to asynchronous?
-- Start building the container
+- Include a postgreSQL service in the project Docker container
 
 ## Scrapping
 
