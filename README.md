@@ -16,15 +16,30 @@ Working:
 - Databases for reviews
 - Sentiment analysis
 
+## Installation
+
+Chrome: run in the terminal from the install directory:
+\texttt{chrome.sh && ./chrome.sh}
+
+Python packages:
+\texttt{pip install -r requirements.txt}
+
+Databases
+Edit the .env file with:
+- DB_NAME=
+- DB_USER=
+- DB_PASSWORD=
+- DB_HOST=
+Then run db_init.ipynb
+
+If trouble loading the function from \texttt{install/}, check and set the wd with:
+\texttt{os.getcwd()} and \texttt{os.chdir(os.path.expanduser("~/work/MLOps"))}
+
 ## Databases
 
 Requires a postgreSQL database that cannot be run directly from Python. It is currently run in the DataLab.
 
-A helper class is located in src/utils/db.py which retrieve logging information from the .env file:
-DB_NAME=
-DB_USER=
-DB_PASSWORD=
-DB_HOST=
+A helper class is located in src/utils/db.py which retrieve logging information from the .env file.
 
 Current implementation: 3 tables, for the movies, the reviews as scrapped, and the results of sentiment analysis.
 
@@ -33,6 +48,8 @@ To do:
 - Include a postgreSQL service in the project Docker container
 
 ## Scrapping
+
+Could be improved to get the exact votes and get rid of the language check, otherwise ok?
 
 ## Sentiment analysis
 

@@ -1,0 +1,4 @@
+openai
+psycopg
+chromedriver-py
+selenium
