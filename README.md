@@ -24,13 +24,12 @@ Chrome: run in the terminal from the install directory:
 Python packages:
 `pip install -r requirements.txt`
 
-Databases
-Edit the .env file with:
+Databases: edit the `.env` file with the following variables then run `db_init.ipynb`
 - DB_NAME=
 - DB_USER=
 - DB_PASSWORD=
 - DB_HOST=
-Then run db_init.ipynb
+
 
 If trouble loading the function from `install/`, check and set the wd with:
 `os.getcwd()` and `os.chdir(os.path.expanduser("~/work/MLOps"))`
