@@ -19,10 +19,10 @@ Working:
 ## Installation
 
 Chrome: run in the terminal from the install directory:
-\texttt{chrome.sh && ./chrome.sh}
+`chrome.sh && ./chrome.sh`
 
 Python packages:
-\texttt{pip install -r requirements.txt}
+`pip install -r requirements.txt`
 
 Databases
 Edit the .env file with:
@@ -32,8 +32,8 @@ Edit the .env file with:
 - DB_HOST=
 Then run db_init.ipynb
 
-If trouble loading the function from \texttt{install/}, check and set the wd with:
-\texttt{os.getcwd()} and \texttt{os.chdir(os.path.expanduser("~/work/MLOps"))}
+If trouble loading the function from `install/`, check and set the wd with:
+`os.getcwd()` and `os.chdir(os.path.expanduser("~/work/MLOps"))`
 
 ## Databases
 
