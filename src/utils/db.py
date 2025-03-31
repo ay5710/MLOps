@@ -30,9 +30,9 @@ class PostgreSQLDatabase:
         try:
             self.connection = psycopg.connect(**self.connection_params)
             self.cursor = self.connection.cursor()
-            print(f"Successfully connected to {self.connection_params['host']}")
+            print(f"[INFO] Successfully connected to {self.connection_params['host']}")
         except (Exception, psycopg.Error) as error:
-            print(f"Error while connecting to {self.connection_params['host']}: {error}")
+            print(f"[ERROR] Failed connecting to {self.connection_params['host']}: {error}")
 
 
     def table_exists(self, table_name):
@@ -51,7 +51,7 @@ class PostgreSQLDatabase:
             self.cursor.execute(check_query, (table_name,))
             return self.cursor.fetchone()[0]
         except (Exception, psycopg.Error) as error:
-            print(f"Error checking if {table_name} exists: {error}")
+            print(f"[ERROR] Failed checking if {table_name} exists: {error}")
             return False
 
             
@@ -75,9 +75,9 @@ class PostgreSQLDatabase:
             
             self.cursor.execute(create_table_query)
             self.connection.commit()
-            print(f"Table {table_name} created successfully")
+            print(f"[INFO] Table {table_name} created successfully")
         except (Exception, psycopg.Error) as error:
-            print(f"Error creating table: {error}")
+            print(f"[ERROR] Failed creating table: {error}")
 
     
     def drop_table(self, table_name):
@@ -94,9 +94,9 @@ class PostgreSQLDatabase:
         
             self.cursor.execute(drop_table_query)
             self.connection.commit()
-            print(f"Table {table_name} dropped successfully")
+            print(f"[INFO] Table {table_name} dropped successfully")
         except (Exception, psycopg.Error) as error:
-            print(f"Error dropping table: {error}")
+            print(f"[ERROR] Failed dropping table: {error}")
 
     
     def backup_table(self, table_name):
@@ -131,11 +131,11 @@ class PostgreSQLDatabase:
             # Save as Parquet
             df.to_parquet(backup_path, index=False)
             
-            print(f"Table {table_name} backed up to {backup_path}")
+            print(f"[INFO] Table {table_name} backed up to {backup_path}")
             return None
         
         except (Exception, psycopg.Error) as error:
-            print(f"Error backing up table {table_name}: {error}")
+            print(f"[ERROR] Failed backing up table {table_name}: {error}")
             return None
 
     
@@ -156,9 +156,9 @@ class PostgreSQLDatabase:
             # Execute batch insert
             self.cursor.executemany(insert_query, data)
             self.connection.commit()
-            print(f"Inserted {len(data)} rows into {table_name}")
+            print(f"[INFO] Inserted {len(data)} rows into {table_name}")
         except (Exception, psycopg.Error) as error:
-            print(f"Error inserting data: {error}")
+            print(f"[ERROR] Failed inserting data: {error}")
 
         
     def remove_data(self, table_name, condition_column, condition_value):
@@ -179,10 +179,10 @@ class PostgreSQLDatabase:
             # Execute delete query
             self.cursor.execute(delete_query, (condition_value,))
             self.connection.commit()
-            print(f"Deleted rows from {table_name} where {condition_column} = {condition_value}")
+            print(f"[INFO] Deleted rows from {table_name} where {condition_column} = {condition_value}")
     
         except (Exception, psycopg.Error) as error:
-            print(f"Error deleting data: {error}")
+            print(f"[ERROR] Failed deleting data: {error}")
 
     
     def query_data(self, table_name, columns='*', condition=None):
@@ -221,7 +221,7 @@ class PostgreSQLDatabase:
             results = self.cursor.fetchall()
             return results
         except (Exception, psycopg.Error) as error:
-            print(f"Error querying data: {error}")
+            print(f"[ERROR] Failed querying data: {error}")
             return []
 
     
