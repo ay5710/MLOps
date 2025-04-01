@@ -7,6 +7,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+
 import pandas as pd
 import re
 import time
@@ -88,45 +89,21 @@ class IMDb:
                     EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "All")]]'))
                 )
                 self.driver.execute_script("arguments[0].click();", all_button)
-                print(f"[INFO] Clicking the button to display all reviews")
-                # Let enough time for all reviews to load
-                wait_time = int(total_reviews / 100)
-                wait_time = max(3, wait_time)
-                time.sleep(wait_time)
-            
+                print(f"[INFO] Attempting to display all reviews")
             except Exception as e:
                 print(f"[WARNING] Button for displaying all reviews not found or not clickable: {e}")
-
+        
         # Scroll down to compensate for lazy loading
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             print(f"[INFO] Scrolling down...")
-            time.sleep(2)  # Give time for new reviews to load
+            time.sleep(1)  # Give time for new reviews to load
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
                 break  # Stop when no new content loads
             last_height = new_height
 
-        # Count reviews
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
-        reviews = soup.find_all("article", class_="user-review-item")
-        print(f"[INFO] Found {len(reviews)} reviews to process")
-        
-        # Click all the spoiler buttons until all reviews are displayed entirely
-        spoiler_buttons = self.driver.find_elements(By.CLASS_NAME, "review-spoiler-button")
-        print(f"[INFO] Found {len(spoiler_buttons)} spoiler buttons to click")
-        
-        for i, spoiler_button in enumerate(tqdm.tqdm(spoiler_buttons, desc="Clicking spoiler buttons", unit="button")):
-            try:
-                # Scroll to element before clicking
-                self.driver.execute_script("arguments[0].scrollIntoView(true);", spoiler_button)
-                ActionChains(self.driver).move_to_element(spoiler_button).click().perform()
-                time.sleep(0.5)  # Allows for clicks to register
-            except Exception as e:
-                print(f"[ERROR] Could not click spoiler button {i+1}: {e}")
-                continue
-        
         # Loop through each review and extract information
         soup = BeautifulSoup(self.driver.page_source, "html.parser")
         reviews = soup.find_all("article", class_="user-review-item")     
@@ -156,16 +133,8 @@ class IMDb:
                 downvotes = downvotes_tag.get_text(strip=True) if downvotes_tag else 0
 
                 # 5. Extract the review text
-                spoiler_content_tag = review.find("div", {"data-testid": "review-spoiler-content"})
-                review_text = None
-                if spoiler_content_tag:
-                    # If the spoiler content exists, extract the inner HTML of the review
-                    review_text_div = spoiler_content_tag.find("div", class_="ipc-html-content-inner-div")
-                    review_text = review_text_div.get_text(separator="\n", strip=True) if review_text_div else None
-                else:
-                    # If no spoiler content, extract the regular review text
-                    review_text_tag = review.find("div", class_="ipc-overflowText--children")
-                    review_text = review_text_tag.get_text(separator="\n", strip=True) if review_text_tag else None
+                review_tag = review.find("div", class_="ipc-html-content-inner-div")
+                review_text = review_tag.get_text(separator="\n", strip=True) if review_tag else None
 
                 # 6. Extract the review title
                 title_container = review.find("div", class_="ipc-title")
@@ -199,15 +168,35 @@ class IMDb:
 
         # Create a dataframe from the collected data
         reviews_df = pd.DataFrame(data)
-        print(f"[INFO] Successfully extracted {len(reviews_df)} reviews")
+        print(f"[INFO] Extracted {len(reviews_df)} reviews")
         return reviews_df
+
+
+    def get_spoiler(self, review_id):
+        # Load review page
+        self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
+        time.sleep(2)  # Allow page to load
+        print(f"[INFO] Getting text behind spoiler markup for review #{review_id}")
+
+        try:
+            # Locate the spoiler button and click it
+            spoiler_button = self.driver.find_element(By.XPATH, '//div[@class="expander-icon-wrapper spoiler-warning__control"]')
+            self.driver.execute_script("arguments[0].click();", spoiler_button)
+            # Wait for the text to become visible after clicking the spoiler button
+            time.sleep(1) 
+            text_element = self.driver.find_element(By.XPATH, '//div[@class="text show-more__control"]')
+            text = text_element.text.strip()
+            return text
+        except Exception as e:
+            print(f"[ERROR] Failed to unspoil review {review_id}: {e}")
+            return None
 
     
     def get_votes(self, review_id):
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
-        time.sleep(3)  # Allow page to load
-        print(f"[INFO] Loading IMDb page for review #{review_id}")
+        time.sleep(2)  # Allow page to load
+        print(f"[INFO] Getting exact votes for review #{review_id}")
 
         # Extract votes
         try:
