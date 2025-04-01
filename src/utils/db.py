@@ -23,6 +23,7 @@ class PostgreSQLDatabase:
         self.connection = None
         self.cursor = None
 
+    
     def connect(self):
         """
         Establish a connection to the PostgreSQL database.
@@ -34,12 +35,25 @@ class PostgreSQLDatabase:
         except (Exception, psycopg.Error) as error:
             print(f"[ERROR] Failed connecting to {self.connection_params['host']}: {error}")
 
+    
+    def close_connection(self):
+        """
+        Close database connection and cursor.
+        """
+        if self.connection:
+            self.cursor.close()
+            self.connection.close()
+            print("Database connection closed")
 
+    
+######################################
+#               Tables               #
+######################################
+
+    
     def table_exists(self, table_name):
         """
         Check if a table exists in the database.
-
-        :param table_name: Name of the table to check
         """
         try:
             check_query = sql.SQL("""
@@ -59,8 +73,8 @@ class PostgreSQLDatabase:
         """
         Create a new table in the database.
         
-        :param table_name: Name of the table to create
-        :param columns: Dictionary of column names and their data types
+        :table_name: Name of the table to create
+        :columns: Dictionary of column names and their data types
         """
         try:
             create_table_query = sql.SQL("CREATE TABLE IF NOT EXISTS {} ({})").format(
@@ -69,10 +83,7 @@ class PostgreSQLDatabase:
                     sql.SQL("{} {}").format(
                         sql.Identifier(col_name), 
                         sql.SQL(col_type)
-                    ) for col_name, col_type in columns.items()
-                )
-            )
-            
+                    ) for col_name, col_type in columns.items()))
             self.cursor.execute(create_table_query)
             self.connection.commit()
             print(f"[INFO] Table {table_name} created successfully")
@@ -83,15 +94,10 @@ class PostgreSQLDatabase:
     def drop_table(self, table_name):
         """
         Drop an existing table from the database.
-    
-        :param table_name: Name of the table to drop
         """
         try:
-            # Construct DROP TABLE statement
             drop_table_query = sql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
-                sql.Identifier(table_name)
-            )
-        
+                sql.Identifier(table_name))
             self.cursor.execute(drop_table_query)
             self.connection.commit()
             print(f"[INFO] Table {table_name} dropped successfully")
@@ -102,41 +108,33 @@ class PostgreSQLDatabase:
     def backup_table(self, table_name):
         """
         Backup a table to a Parquet file in the data/backups/ directory.
-        
-        :param table_name: Name of the table to backup
         """
         try:
-            # Ensure backup directory exists
+        # Ensure backup directory exists
             backup_dir = os.path.join('data', 'backups')
             os.makedirs(backup_dir, exist_ok=True)
-            
-            # Generate backup filename with timestamp
+        # Generate backup filename with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{table_name}_{timestamp}.parquet"
             backup_path = os.path.join(backup_dir, backup_filename)
-            
-            # Fetch all data from the table
+        # Fetch all data from the table
             query = sql.SQL("SELECT * FROM {}").format(sql.Identifier(table_name))
             self.cursor.execute(query)
-            
-            # Get column names
             column_names = [desc[0] for desc in self.cursor.description]
-            
-            # Fetch all rows
             rows = self.cursor.fetchall()
-            
-            # Convert to DataFrame
-            df = pd.DataFrame(rows, columns=column_names)
-            
-            # Save as Parquet
+            df = pd.DataFrame(rows, columns=column_names)         
+        # Save as Parquet
             df.to_parquet(backup_path, index=False)
-            
             print(f"[INFO] Table {table_name} backed up to {backup_path}")
             return None
-        
         except (Exception, psycopg.Error) as error:
             print(f"[ERROR] Failed backing up table {table_name}: {error}")
             return None
+
+    
+######################################
+#                Data                #
+######################################
 
     
     def insert_data(self, table_name, data):
@@ -147,20 +145,61 @@ class PostgreSQLDatabase:
         :param data: List of tuples containing row data
         """
         try:
-            # Prepare insert statement
             insert_query = sql.SQL("INSERT INTO {} VALUES ({})").format(
                 sql.Identifier(table_name),
-                sql.SQL(', ').join(sql.Placeholder() * len(data[0]))
-            )
-            
-            # Execute batch insert
+                sql.SQL(', ').join(sql.Placeholder() * len(data[0])))
             self.cursor.executemany(insert_query, data)
             self.connection.commit()
             print(f"[INFO] Inserted {len(data)} rows into {table_name}")
         except (Exception, psycopg.Error) as error:
             print(f"[ERROR] Failed inserting data: {error}")
 
-        
+
+    def upsert_movie_data(self, data):
+        try:
+            query = sql.SQL("""
+                    INSERT INTO {} (movie_id, title, release_date, nb_reviews, scrapping_timestamp)
+                    VALUES ({})
+                    ON CONFLICT (movie_id) 
+                    DO UPDATE SET 
+                        nb_reviews = EXCLUDED.nb_reviews,
+                        scrapping_timestamp = EXCLUDED.scrapping_timestamp
+                    WHERE {}.nb_reviews <> EXCLUDED.nb_reviews
+                """).format(
+                    sql.Identifier('movies'),
+                    sql.SQL(', ').join(sql.Placeholder() * len(data[0])),
+                    sql.Identifier('movies'))
+            self.cursor.executemany(query, data)
+            self.connection.commit()
+            print(f"[INFO] Upserted successfully into movies")
+        except (Exception, psycopg.Error) as error:
+            print(f"[ERROR] Failed upserting into movies: {error}")
+
+
+    def upsert_review_data(self, data):
+        try:
+            query = """
+            INSERT INTO reviews_raw (movie_id, review_id, author, title, text, rating, date, upvotes, downvotes, scrapping_timestamp, to_process)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (review_id) DO UPDATE
+            SET 
+                title = EXCLUDED.title,
+                text = EXCLUDED.text,
+                upvotes = EXCLUDED.upvotes,
+                downvotes = EXCLUDED.downvotes,
+                to_process = CASE 
+                    WHEN reviews_raw.title IS DISTINCT FROM EXCLUDED.title OR reviews_raw.text IS DISTINCT FROM EXCLUDED.text 
+                    THEN 1 
+                    ELSE reviews_raw.to_process 
+            END;
+            """
+            self.cursor.executemany(query, data)
+            self.connection.commit()
+            print(f"[INFO] Upserted successfully into reviews_raw")
+        except (Exception, psycopg.Error) as error:
+            print(f"[ERROR] Failed upserting into reviews_raw: {error}")
+
+
     def remove_data(self, table_name, condition_column, condition_value):
         """
         Remove data from a specified table based on a condition.
@@ -170,17 +209,12 @@ class PostgreSQLDatabase:
         :param condition_value: Value to match for deletion
         """
         try:
-            # Prepare delete statement
             delete_query = sql.SQL("DELETE FROM {} WHERE {} = %s").format(
                 sql.Identifier(table_name),
-                sql.Identifier(condition_column)
-            )
-        
-            # Execute delete query
+                sql.Identifier(condition_column))
             self.cursor.execute(delete_query, (condition_value,))
             self.connection.commit()
-            print(f"[INFO] Deleted rows from {table_name} where {condition_column} = {condition_value}")
-    
+            print(f"[INFO] Deleted rows from {table_name} where {condition_column} = {condition_value}")    
         except (Exception, psycopg.Error) as error:
             print(f"[ERROR] Failed deleting data: {error}")
 
@@ -195,41 +229,25 @@ class PostgreSQLDatabase:
         :return: List of query results
         """
         try:
-            # Prepare select statement
             if columns == '*':
                 select_query = sql.SQL("SELECT * FROM {}").format(
-                    sql.Identifier(table_name)
-                )
+                    sql.Identifier(table_name))
                 if condition:
                     select_query = sql.SQL("SELECT * FROM {} WHERE {}").format(
                         sql.Identifier(table_name),
-                        sql.SQL(condition)
-                    )
+                        sql.SQL(condition))
             else:
                 select_query = sql.SQL("SELECT {} FROM {}").format(
                     sql.SQL(', ').join(sql.Identifier(col) for col in columns),
-                    sql.Identifier(table_name)
-                )
+                    sql.Identifier(table_name))
                 if condition:
                     select_query = sql.SQL("SELECT {} FROM {} WHERE {}").format(
                         sql.SQL(', ').join(sql.Identifier(col) for col in columns),
                         sql.Identifier(table_name),
-                        sql.SQL(condition)
-                    )
-            
+                        sql.SQL(condition))            
             self.cursor.execute(select_query)
             results = self.cursor.fetchall()
             return results
         except (Exception, psycopg.Error) as error:
             print(f"[ERROR] Failed querying data: {error}")
             return []
-
-    
-    def close_connection(self):
-        """
-        Close database connection and cursor.
-        """
-        if self.connection:
-            self.cursor.close()
-            self.connection.close()
-            print("Database connection closed")

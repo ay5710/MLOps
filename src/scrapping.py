@@ -36,9 +36,9 @@ class IMDb:
             movie_title = title_element.text.strip()
             print(f"[INFO] Extracting movie title: {movie_title}")
             
-            # Extract release date
+            # Wait for and extract release date
             release_date_element = self.wait.until(
-                EC.presence_of_element_located((By.XPATH, '//li[@data-testid="title-details-releasedate"]//a'))
+                EC.presence_of_element_located((By.XPATH, '//li[@data-testid="title-details-releasedate"]//a[@class="ipc-metadata-list-item__list-content-item ipc-metadata-list-item__list-content-item--link"]'))
             )
             release_date = release_date_element.text.split(" (")[0].strip()
             print(f"[INFO] Extracting release date: {release_date}")
@@ -56,18 +56,16 @@ class IMDb:
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
             print(f"[INFO] Loading IMDb reviews page for movie #{movie_id}")
         
-            # Wait for and extract the number of reviews
+            # Wait for, extract and parse the number of reviews
             reviews_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//div[@data-testid="tturv-total-reviews"]'))
             )
-        
-            # Parse the number of reviews
             reviews_text = reviews_element.text.strip()
             if "reviews" in reviews_text:
-                total_reviews = reviews_text.split(" reviews")[0]
-                total_reviews = int(total_reviews.replace(",", ""))  # Remove the comma for numbers >999
+                total_reviews = reviews_text.split(" reviews")[0]    # Remove the unit
+                total_reviews = total_reviews.replace(",", "")       # Remove the comma for numbers >999
                 print(f"[INFO] Found {total_reviews} reviews")
-                return total_reviews
+                return int(total_reviews)                            # Convert to integer
             else:
                 print(f"[INFO] Could not parse review count from text: '{reviews_text}'")
                 return None
@@ -77,27 +75,44 @@ class IMDb:
             return None
 
 
-    def get_reviews(self, movie_id):
+    def get_reviews(self, movie_id, total_reviews):
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
         print(f"[INFO] Loading IMDb reviews page for movie #{movie_id}")
+        time.sleep(7)
 
-        # Click the button to display all reviews  
-        try:
-            all_button = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "All")]]'))
-            )
+        # Click the button to display all reviews, using JavaScript to avoid interception issues
+        if total_reviews > 25:
+            try:
+                all_button = self.wait.until(
+                    EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "All")]]'))
+                )
+                self.driver.execute_script("arguments[0].click();", all_button)
+                print(f"[INFO] Clicking the button to display all reviews")
+                # Let enough time for all reviews to load
+                wait_time = int(total_reviews / 100)
+                wait_time = max(3, wait_time)
+                time.sleep(wait_time)
+            
+            except Exception as e:
+                print(f"[WARNING] Button for displaying all reviews not found or not clickable: {e}")
+
+        # Scroll down to compensate for lazy loading
+        last_height = self.driver.execute_script("return document.body.scrollHeight")
+        while True:
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            print(f"[INFO] Scrolling down...")
+            time.sleep(2)  # Give time for new reviews to load
+            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break  # Stop when no new content loads
+            last_height = new_height
+
+        # Count reviews
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        reviews = soup.find_all("article", class_="user-review-item")
+        print(f"[INFO] Found {len(reviews)} reviews to process")
         
-            # Click the button using JavaScript to avoid interception issues
-            self.driver.execute_script("arguments[0].click();", all_button)
-            print(f"[INFO] Clicking the button to display all reviews")
-            
-            # Wait for page to load after clicking
-            time.sleep(2)
-            
-        except Exception as e:
-            print(f"[WARNING] Button for displaying all reviews not found or not clickable: {e}")
-
         # Click all the spoiler buttons until all reviews are displayed entirely
         spoiler_buttons = self.driver.find_elements(By.CLASS_NAME, "review-spoiler-button")
         print(f"[INFO] Found {len(spoiler_buttons)} spoiler buttons to click")
@@ -111,13 +126,10 @@ class IMDb:
             except Exception as e:
                 print(f"[ERROR] Could not click spoiler button {i+1}: {e}")
                 continue
-
-        # Extract reviews
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
-        reviews = soup.find_all("article", class_="user-review-item")
-        print(f"[INFO] Found {len(reviews)} reviews to process")
-
+        
         # Loop through each review and extract information
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        reviews = soup.find_all("article", class_="user-review-item")     
         data = []
         for review in reviews:
             try:
@@ -145,7 +157,6 @@ class IMDb:
 
                 # 5. Extract the review text
                 spoiler_content_tag = review.find("div", {"data-testid": "review-spoiler-content"})
-                
                 review_text = None
                 if spoiler_content_tag:
                     # If the spoiler content exists, extract the inner HTML of the review
@@ -199,20 +210,22 @@ class IMDb:
         print(f"[INFO] Loading IMDb page for review #{review_id}")
 
         # Extract votes
-        votes_element = self.driver.find_element(By.XPATH, '//div[@class="actions text-muted"]')
-        votes_text = votes_element.text.strip()
-        votes_match = re.search(r'([\d,]+) out of ([\d,]+)', votes_text)
+        try:
+            votes_element = self.driver.find_element(By.XPATH, '//div[@class="actions text-muted"]')
+            votes_text = votes_element.text.strip()
+            votes_match = re.search(r'([\d,]+) out of ([\d,]+)', votes_text)
+            if votes_match:
+                upvotes = int(votes_match.group(1).replace(',', ''))
+                allvotes = int(votes_match.group(2).replace(',', ''))
+                downvotes = allvotes - upvotes
+            return upvotes, downvotes
 
-        if votes_match:
-            upvotes = int(votes_match.group(1).replace(',', ''))
-            all_votes = int(votes_match.group(2).replace(',', ''))
-            downvotes = all_votes - upvotes
+        except Exception as e:
+            print(f"[ERROR] Failed to get exact votes for review {review_id}: {e}")
+            return None
 
-        return upvotes, downvotes
-        
-
+    
     def close(self):
-        """Close the browser and clean up resources"""
         if hasattr(self, 'driver'):
             self.driver.quit()
             print(f"[INFO] Closing browser")
