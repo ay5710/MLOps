@@ -236,10 +236,10 @@ class PostgreSQLDatabase:
                     sql.Identifier('movies'))
             self.cursor.executemany(query, data)
             self.connection.commit()
-            print(f"[INFO] Upserted successfully into movies")
+            print(f"[INFO] Upserted movie data successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed upserting into movies: {error}")
+            print(f"[ERROR] Failed upserting metadata: {error}")
 
 
     def upsert_review_data(self, data):
@@ -262,10 +262,10 @@ class PostgreSQLDatabase:
             """
             self.cursor.executemany(query, data)
             self.connection.commit()
-            print(f"[INFO] Upserted successfully into reviews_raw")
+            print(f"[INFO] Upserted reviews successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed upserting into reviews_raw: {error}")
+            print(f"[ERROR] Failed upserting reviews: {error}")
 
     
     def update_sentiment_data(self, data):

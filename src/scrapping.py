@@ -28,7 +28,7 @@ class IMDb:
         try:
             # Load main page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
-            print(f"[INFO] Scrapping metadata for MOVIE #{movie_id}")
+            print(f"[INFO] Scrapping metadata")
             
             # Wait for and extract title
             title_element = self.wait.until(
@@ -55,7 +55,6 @@ class IMDb:
         try:
             # Load review page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
-            print(f"[INFO] Scrapping REVIEWS for movie #{movie_id}")
         
             # Wait for, extract and parse the number of reviews
             reviews_element = self.wait.until(
@@ -65,21 +64,21 @@ class IMDb:
             if "reviews" in reviews_text:
                 total_reviews = reviews_text.split(" reviews")[0]    # Remove the unit
                 total_reviews = total_reviews.replace(",", "")       # Remove the comma for numbers >999
-                print(f"[INFO] Found {total_reviews} reviews")
+                print(f"[INFO] Reviews: {total_reviews}")
                 return int(total_reviews)                            # Convert to integer
             else:
                 print(f"[INFO] Could not parse review count from text: '{reviews_text}'")
                 return None
         
         except Exception as e:
-            print(f"[ERROR] Failed to get number of reviews for movie #{movie_id}: {e}")
+            print(f"[ERROR] Failed to get number of reviews: {e}")
             return None
 
 
     def get_reviews(self, movie_id, total_reviews):
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
-        print(f"[INFO] Loading the Reviews page for movie #{movie_id}")
+        print(f"[INFO] Scrapping reviews")
         time.sleep(7)
 
         # Click the button to display all reviews, using JavaScript to avoid interception issues

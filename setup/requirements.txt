@@ -1,4 +1,4 @@
+chromedriver-py
 openai
 psycopg
-chromedriver-py
 selenium
