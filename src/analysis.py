@@ -11,10 +11,10 @@ class GPT:
         load_dotenv()
         openai.api_key = os.getenv('OPENAI_API_KEY')
         self.client = OpenAI()
-    
-    def sentiment(self, review):     
-        text = review[3] + f"\n\n" + review[4]   
-        
+
+    def sentiment(self, review):
+        text = review[3] + f"\n\n" + review[4]
+
         prompt = f"""
 Instructions:
 Below is a movie review that I want you to analyze. 
@@ -32,18 +32,19 @@ You must return this list only, without any additional commentary. Your answer s
 Now the review:
 {text}
 """
-        
+
         try:
             completion = self.client.chat.completions.create(
                 model = "gpt-4o-mini",
-                messages = [{"role": "user", "content": prompt}])
+                messages = [{"role": "user", "content": prompt}]
+            )
         except Exception as e:
             print(f"API call failed for review: {e}")
             return None
 
         # Extract list from API answer
         answer = ast.literal_eval(completion.choices[0].message.content)
-        
+
         # Convert categories into integers
         sentiment_mapping = {
             'very negative': -2,
@@ -58,15 +59,15 @@ Now the review:
             'excellent': 2,
             'NA': None}
         mapped_values = [None] * 6
-        
+
         # Map aspect-based sentiments
         for i, (label, _, sentiment) in enumerate(answer[:5]):
             if sentiment in sentiment_mapping:
                 mapped_values[i] = sentiment_mapping[sentiment]
-        
+
         # Map overall sentiment
         label, sentiment = answer[5]
         if sentiment in sentiment_mapping:
             mapped_values[5] = sentiment_mapping[sentiment]
-            
+
         return mapped_values

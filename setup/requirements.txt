@@ -1,4 +1,5 @@
 chromedriver-py
 openai
 psycopg
+schedule
 selenium

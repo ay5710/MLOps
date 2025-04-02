@@ -1,17 +1,15 @@
-from bs4 import BeautifulSoup
-from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-
 import pandas as pd
 import re
 import time
-import tqdm
+
+from bs4 import BeautifulSoup
+from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
 
 class IMDb:
     def __init__(self):
@@ -21,41 +19,41 @@ class IMDb:
         chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36")
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 10)
-        print(f"[INFO] Launching browser")
+        print("[INFO] Launching browser")
 
-        
+
     def get_movie(self, movie_id):
         try:
             # Load main page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
-            print(f"[INFO] Scrapping metadata")
-            
+            print("[INFO] Scrapping metadata")
+
             # Wait for and extract title
             title_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//span[@data-testid="hero__primary-text"]'))
             )
             movie_title = title_element.text.strip()
             print(f"[INFO] Movie title: {movie_title}")
-            
+
             # Wait for and extract release date
             release_date_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//li[@data-testid="title-details-releasedate"]//a[@class="ipc-metadata-list-item__list-content-item ipc-metadata-list-item__list-content-item--link"]'))
             )
             release_date = release_date_element.text.split(" (")[0].strip()
             print(f"[INFO] Release date: {release_date}")
-            
+
             return movie_title, release_date
-        
+
         except Exception as e:
             print(f"[ERROR] Failed to get metadata: {e}")
             return None
 
-    
+
     def get_number_of_reviews(self, movie_id):
         try:
             # Load review page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
-        
+
             # Wait for, extract and parse the number of reviews
             reviews_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//div[@data-testid="tturv-total-reviews"]'))
@@ -69,7 +67,7 @@ class IMDb:
             else:
                 print(f"[INFO] Could not parse review count from text: '{reviews_text}'")
                 return None
-        
+
         except Exception as e:
             print(f"[ERROR] Failed to get number of reviews: {e}")
             return None
@@ -78,7 +76,7 @@ class IMDb:
     def get_reviews(self, movie_id, total_reviews):
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
-        print(f"[INFO] Scrapping reviews")
+        print("[INFO] Scrapping reviews")
         time.sleep(7)
 
         # Click the button to display all reviews, using JavaScript to avoid interception issues
@@ -88,15 +86,15 @@ class IMDb:
                     EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "All")]]'))
                 )
                 self.driver.execute_script("arguments[0].click();", all_button)
-                print(f"[INFO] Attempting to display all reviews")
+                print("[INFO] Attempting to display all reviews")
             except Exception as e:
                 print(f"[WARNING] Button for displaying all reviews not found or not clickable: {e}")
-        
+
         # Scroll down to compensate for lazy loading
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            print(f"[INFO] Scrolling down...")
+            print("[INFO] Scrolling down...")
             time.sleep(1)  # Give time for new reviews to load
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
@@ -105,7 +103,7 @@ class IMDb:
 
         # Loop through each review and extract information
         soup = BeautifulSoup(self.driver.page_source, "html.parser")
-        reviews = soup.find_all("article", class_="user-review-item")     
+        reviews = soup.find_all("article", class_="user-review-item")
         data = []
         for review in reviews:
             try:
@@ -152,13 +150,13 @@ class IMDb:
                 data.append({
                     "movie_id": movie_id,
                     "review_id": review_id,
-                    "author": author_name, 
+                    "author": author_name,
                     "title": review_title,
                     "text": review_text,
                     "rating": rating,
                     "date": review_date,
-                    "upvotes": upvotes, 
-                    "downvotes": downvotes, 
+                    "upvotes": upvotes,
+                    "downvotes": downvotes,
                     "last_update": datetime.now().strftime("%Y%m%d_%H%M%S")
                 })
             except Exception as e:
@@ -181,7 +179,7 @@ class IMDb:
             spoiler_button = self.driver.find_element(By.XPATH, '//div[@class="expander-icon-wrapper spoiler-warning__control"]')
             self.driver.execute_script("arguments[0].click();", spoiler_button)
             # Wait for the text to become visible after clicking the spoiler button
-            time.sleep(1) 
+            time.sleep(1)
             text_element = self.driver.find_element(By.XPATH, '//div[@class="text show-more__control"]')
             text = text_element.text.strip()
             return text
@@ -189,7 +187,7 @@ class IMDb:
             print(f"[ERROR] Failed to unspoil review {review_id}: {e}")
             return None
 
-    
+
     def get_votes(self, review_id):
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
@@ -211,8 +209,8 @@ class IMDb:
             print(f"[ERROR] Failed to get exact votes for review {review_id}: {e}")
             return None
 
-    
+
     def close(self):
         if hasattr(self, 'driver'):
             self.driver.quit()
-            print(f"[INFO] Closing browser")
+            print("[INFO] Closing browser")

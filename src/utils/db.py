@@ -12,7 +12,7 @@ class PostgreSQLDatabase:
         """
         Initialize database connection parameters.
         """
-        load_dotenv()      
+        load_dotenv()
         self.connection_params = {
             'dbname': os.getenv('DB_NAME'),
             'user': os.getenv('DB_ADMIN_USER') if admin else os.getenv('DB_USER'),
@@ -23,7 +23,7 @@ class PostgreSQLDatabase:
         self.connection = None
         self.cursor = None
 
-    
+
     def connect(self):
         """
         Establish a connection to the PostgreSQL database.
@@ -35,7 +35,7 @@ class PostgreSQLDatabase:
         except (Exception, psycopg.Error) as error:
             print(f"[ERROR] Failed connecting to {self.connection_params['host']}: {error}")
 
-    
+
     def close_connection(self):
         """
         Close database connection and cursor.
@@ -43,14 +43,14 @@ class PostgreSQLDatabase:
         if self.connection:
             self.cursor.close()
             self.connection.close()
-            print("Database connection closed")
+            print("[INFO] Database connection closed")
 
-    
+
 ######################################
 #               Tables               #
 ######################################
 
-    
+
     def table_exists(self, table_name):
         """
         Check if a table exists in the database.
@@ -58,7 +58,7 @@ class PostgreSQLDatabase:
         try:
             check_query = sql.SQL("""
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
+                    SELECT FROM information_schema.tables
                     WHERE table_name = %s
                 )
             """)
@@ -69,11 +69,11 @@ class PostgreSQLDatabase:
             print(f"[ERROR] Failed checking if {table_name} exists: {error}")
             return False
 
-            
+
     def create_table(self, table_name, columns):
         """
         Create a new table in the database.
-        
+
         :table_name: Name of the table to create
         :columns: Dictionary of column names and their data types
         """
@@ -82,7 +82,7 @@ class PostgreSQLDatabase:
                 sql.Identifier(table_name),
                 sql.SQL(', ').join(
                     sql.SQL("{} {}").format(
-                        sql.Identifier(col_name), 
+                        sql.Identifier(col_name),
                         sql.SQL(col_type)
                     ) for col_name, col_type in columns.items()))
             self.cursor.execute(create_table_query)
@@ -92,7 +92,7 @@ class PostgreSQLDatabase:
             self.connection.rollback()
             print(f"[ERROR] Failed creating table: {error}")
 
-    
+
     def drop_table(self, table_name):
         """
         Drop an existing table from the database.
@@ -107,26 +107,26 @@ class PostgreSQLDatabase:
             self.connection.rollback()
             print(f"[ERROR] Failed dropping table: {error}")
 
-    
+
     def backup_table(self, table_name):
         """
         Backup a table to a Parquet file in the data/backups/ directory.
         """
         try:
-        # Ensure backup directory exists
+            # Ensure backup directory exists
             backup_dir = os.path.join('data', 'backups')
             os.makedirs(backup_dir, exist_ok=True)
-        # Generate backup filename with timestamp
+            # Generate backup filename with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{table_name}_{timestamp}.parquet"
             backup_path = os.path.join(backup_dir, backup_filename)
-        # Fetch all data from the table
+            # Fetch all data from the table
             query = sql.SQL("SELECT * FROM {}").format(sql.Identifier(table_name))
             self.cursor.execute(query)
             column_names = [desc[0] for desc in self.cursor.description]
             rows = self.cursor.fetchall()
-            df = pd.DataFrame(rows, columns=column_names)         
-        # Save as Parquet
+            df = pd.DataFrame(rows, columns=column_names)
+            # Save as Parquet
             df.to_parquet(backup_path, index=False)
             print(f"[INFO] Table {table_name} backed up to {backup_path}")
             return None
@@ -144,7 +144,7 @@ class PostgreSQLDatabase:
     def insert_data(self, table_name, data):
         """
         Insert data into a specified table.
-        
+
         :param table_name: Name of the table
         :param data: List of tuples containing row data
         """
@@ -154,12 +154,13 @@ class PostgreSQLDatabase:
                 sql.SQL(', ').join(sql.Placeholder() * len(data[0])))
             self.cursor.executemany(insert_query, data)
             self.connection.commit()
-            print(f"[INFO] Inserted {len(data)} rows into {table_name}")
+            prompt = "1 row" if len(data) == 1 else f"{len(data)} rows"
+            print(f"[INFO] Inserted {prompt} into {table_name}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
             print(f"[ERROR] Failed inserting data: {error}")
 
-            
+
     def remove_data(self, table_name, condition_column, condition_value):
         """
         Remove data from a specified table based on a condition.
@@ -173,17 +174,19 @@ class PostgreSQLDatabase:
                 sql.Identifier(table_name),
                 sql.Identifier(condition_column))
             self.cursor.execute(delete_query, (condition_value,))
+            row_count = self.cursor.rowcount
             self.connection.commit()
-            print(f"[INFO] Deleted rows from {table_name} where {condition_column} = {condition_value}")    
+            prompt = "1 row" if row_count == 1 else f"{row_count} rows"
+            print(f"[INFO] Deleted {prompt} from {table_name} where {condition_column} = {condition_value}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
             print(f"[ERROR] Failed deleting data: {error}")
 
-    
+
     def query_data(self, table_name, columns='*', condition=None):
         """
         Query data from a specified table.
-        
+
         :param table_name: Name of the table
         :param columns: Columns to select (default: all)
         :param condition: Optional WHERE clause
@@ -225,8 +228,8 @@ class PostgreSQLDatabase:
             query = sql.SQL("""
                     INSERT INTO {} (movie_id, title, release_date, nb_reviews, scrapping_timestamp)
                     VALUES ({})
-                    ON CONFLICT (movie_id) 
-                    DO UPDATE SET 
+                    ON CONFLICT (movie_id)
+                    DO UPDATE SET
                         nb_reviews = EXCLUDED.nb_reviews,
                         scrapping_timestamp = EXCLUDED.scrapping_timestamp
                     WHERE {}.nb_reviews <> EXCLUDED.nb_reviews
@@ -236,7 +239,7 @@ class PostgreSQLDatabase:
                     sql.Identifier('movies'))
             self.cursor.executemany(query, data)
             self.connection.commit()
-            print(f"[INFO] Upserted movie data successfully")
+            print("[INFO] Upserted movie data successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
             print(f"[ERROR] Failed upserting metadata: {error}")
@@ -248,26 +251,26 @@ class PostgreSQLDatabase:
             INSERT INTO reviews_raw (movie_id, review_id, author, title, text, rating, date, upvotes, downvotes, last_update, to_process)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (review_id) DO UPDATE
-            SET 
+            SET
                 title = EXCLUDED.title,
                 text = EXCLUDED.text,
                 upvotes = EXCLUDED.upvotes,
                 downvotes = EXCLUDED.downvotes,
                 last_update = EXCLUDED.last_update,
-                to_process = CASE 
-                    WHEN reviews_raw.title IS DISTINCT FROM EXCLUDED.title OR reviews_raw.text IS DISTINCT FROM EXCLUDED.text 
-                    THEN 1 
-                    ELSE reviews_raw.to_process 
+                to_process = CASE
+                    WHEN reviews_raw.title IS DISTINCT FROM EXCLUDED.title OR reviews_raw.text IS DISTINCT FROM EXCLUDED.text
+                    THEN 1
+                    ELSE reviews_raw.to_process
             END;
             """
             self.cursor.executemany(query, data)
             self.connection.commit()
-            print(f"[INFO] Upserted reviews successfully")
+            print("[INFO] Upserted reviews successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
             print(f"[ERROR] Failed upserting reviews: {error}")
 
-    
+
     def update_sentiment_data(self, data):
         """
         Insert data into a specified table, updating existing rows if review_id conflicts.
