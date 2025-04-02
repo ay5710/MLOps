@@ -35,6 +35,13 @@ Solution: offload the task to generative LLMs. A cursory experimentation shows t
 
 The current implementation relies on gpt-4o-mini from OpenAI, which is inexpensive ($0.15 / M tokens) but rather slow. It requires an API key stored in the .env file. An alternative would be to use Gemini from Google, which has a free tier (albeit with rates limits and requiring an API key as well).
 
+Aspects:
+- *Storytelling* (including characters and their development, narrative progression, plot twists, screenplay, dialogues, overall pacing)
+- *Acting performance* (including vocal, musical, danse, or stunt work if applicable)
+- *Cinematography and visual style* (including colors and lightening, set design, costumes, makeup, special effects, overall aesthetic of the film)
+- *Music and sound design* (including soundtrack and scores)
+- *Theme and values* (including the moral or political message, emotional resonance, cultural or societal impact)
+
 ### Dashboard
 With Streamlit? Apache superset?
 
