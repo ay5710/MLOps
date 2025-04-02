@@ -9,7 +9,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from src.utils.logger import get_backend_logger
 
+logger = get_backend_logger()
 
 class IMDb:
     def __init__(self):
@@ -19,33 +21,33 @@ class IMDb:
         chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36")
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 10)
-        print("[INFO] Launching browser")
+        logger.info("Launching browser")
 
 
     def get_movie(self, movie_id):
         try:
             # Load main page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
-            print("[INFO] Scrapping metadata")
+            logger.info("Scrapping metadata")
 
             # Wait for and extract title
             title_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//span[@data-testid="hero__primary-text"]'))
             )
             movie_title = title_element.text.strip()
-            print(f"[INFO] Movie title: {movie_title}")
+            logger.info(f"Movie title: {movie_title}")
 
             # Wait for and extract release date
             release_date_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//li[@data-testid="title-details-releasedate"]//a[@class="ipc-metadata-list-item__list-content-item ipc-metadata-list-item__list-content-item--link"]'))
             )
             release_date = release_date_element.text.split(" (")[0].strip()
-            print(f"[INFO] Release date: {release_date}")
+            logger.info(f"Release date: {release_date}")
 
             return movie_title, release_date
 
         except Exception as e:
-            print(f"[ERROR] Failed to get metadata: {e}")
+            logger.error(f"Failed to get metadata: {e}")
             return None
 
 
@@ -62,21 +64,21 @@ class IMDb:
             if "reviews" in reviews_text:
                 total_reviews = reviews_text.split(" reviews")[0]    # Remove the unit
                 total_reviews = total_reviews.replace(",", "")       # Remove the comma for numbers >999
-                print(f"[INFO] Reviews: {total_reviews}")
+                logger.info(f"Reviews: {total_reviews}")
                 return int(total_reviews)                            # Convert to integer
             else:
-                print(f"[INFO] Could not parse review count from text: '{reviews_text}'")
+                logger.info(f"Could not parse review count from text: '{reviews_text}'")
                 return None
 
         except Exception as e:
-            print(f"[ERROR] Failed to get number of reviews: {e}")
+            logger.error(f"Failed to get number of reviews: {e}")
             return None
 
 
     def get_reviews(self, movie_id, total_reviews):
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
-        print("[INFO] Scrapping reviews")
+        logger.info("Scrapping reviews")
         time.sleep(7)
 
         # Click the button to display all reviews, using JavaScript to avoid interception issues
@@ -86,15 +88,15 @@ class IMDb:
                     EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "All")]]'))
                 )
                 self.driver.execute_script("arguments[0].click();", all_button)
-                print("[INFO] Attempting to display all reviews")
+                logger.info("Attempting to display all reviews")
             except Exception as e:
-                print(f"[WARNING] Button for displaying all reviews not found or not clickable: {e}")
+                logger.warning(f"Button for displaying all reviews not found or not clickable: {e}")
 
         # Scroll down to compensate for lazy loading
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            print("[INFO] Scrolling down...")
+            logger.info("Scrolling down...")
             time.sleep(1)  # Give time for new reviews to load
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
@@ -160,12 +162,12 @@ class IMDb:
                     "last_update": datetime.now().strftime("%Y%m%d_%H%M%S")
                 })
             except Exception as e:
-                print(f"[ERROR] Failed to extract data for a review: {e}")
+                logger.error(f"Failed to extract data for a review: {e}")
                 continue
 
         # Create a dataframe from the collected data
         reviews_df = pd.DataFrame(data)
-        print(f"[INFO] Extracted {len(reviews_df)} reviews")
+        logger.info(f"Extracted {len(reviews_df)} reviews")
         return reviews_df
 
 
@@ -184,7 +186,7 @@ class IMDb:
             text = text_element.text.strip()
             return text
         except Exception as e:
-            print(f"[ERROR] Failed to unspoil review {review_id}: {e}")
+            logger.error(f"Failed to unspoil review {review_id}: {e}")
             return None
 
 
@@ -192,7 +194,7 @@ class IMDb:
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load
-        print(f"[INFO] Getting exact votes for review #{review_id}")
+        logger.info(f"Getting exact votes for review #{review_id}")
 
         # Extract votes
         try:
@@ -206,11 +208,11 @@ class IMDb:
             return upvotes, downvotes
 
         except Exception as e:
-            print(f"[ERROR] Failed to get exact votes for review {review_id}: {e}")
+            logger.error(f"Failed to get exact votes for review {review_id}: {e}")
             return None
 
 
     def close(self):
         if hasattr(self, 'driver'):
             self.driver.quit()
-            print("[INFO] Closing browser")
+            logger.info("Closing browser")

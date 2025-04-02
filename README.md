@@ -28,7 +28,7 @@ Then, run `python -m setup.db_init`
 
 OpenAI: set the OPENAI_API_KEY in the `.env` file.
 
-Launch the scheduler with `nohup python scheduler.py &`
+Launch the scheduler with `nohup python scheduler.py &` (and check if it's running with `pgrep -fl scheduler.py`)
 
 Add a movie to track with `python -m src.utils.add_movie <movie_id>` (where `<movie_id>` must be retrieved manually from IMDb)
 
@@ -47,6 +47,8 @@ The only workable solution is to offload sentiment analysis to a **generative LL
 ### Dashboard
 With Streamlit? Apache superset?
 
+***Would it be easier to store `movie_id` in the `reviews_sentiments` table?***
+
 With...
 - Header presenting the movie + time since last scrapping
 - Total number of reviews + graph of their publication date
@@ -57,10 +59,10 @@ With...
 ### To do
 - Implement consistency checks for the results of scrapping and API calls
 - Offer the possibility to add new movies from the dashboard, preferably without too many reviews to reduce processing times
-- *Optionnal:* switch db to asynchronous
+- *Optionnal:* use [enlighten](https://python-enlighten.readthedocs.io/en/stable/index.html) for progress bars
 - *Optionnal:* switch from GPT to Gemini 
 - *Optionnal:* use ArgoCD
-- *Optionnal:* API
+- *Optionnal:* create an API
 
 ### Checklist
 - The project is well structured

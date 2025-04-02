@@ -4,7 +4,9 @@ import os
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from src.utils.logger import get_backend_logger
 
+logger = get_backend_logger()
 
 class GPT:
     def __init__(self):
@@ -39,7 +41,7 @@ Now the review:
                 messages = [{"role": "user", "content": prompt}]
             )
         except Exception as e:
-            print(f"API call failed for review: {e}")
+            logger.info(f"API call failed for review: {e}")
             return None
 
         # Extract list from API answer

@@ -5,7 +5,9 @@ import psycopg
 from dotenv import load_dotenv
 from datetime import datetime
 from psycopg import sql
+from src.utils.logger import get_backend_logger
 
+logger = get_backend_logger()
 
 class PostgreSQLDatabase:
     def __init__(self, admin=False):
@@ -31,9 +33,9 @@ class PostgreSQLDatabase:
         try:
             self.connection = psycopg.connect(**self.connection_params)
             self.cursor = self.connection.cursor()
-            print(f"[INFO] Successfully connected to {self.connection_params['host']}")
+            logger.info(f"Successfully connected to {self.connection_params['host']}")
         except (Exception, psycopg.Error) as error:
-            print(f"[ERROR] Failed connecting to {self.connection_params['host']}: {error}")
+            logger.error(f"Failed connecting to {self.connection_params['host']}: {error}")
 
 
     def close_connection(self):
@@ -43,7 +45,7 @@ class PostgreSQLDatabase:
         if self.connection:
             self.cursor.close()
             self.connection.close()
-            print("[INFO] Database connection closed")
+            logger.info("Database connection closed")
 
 
 ######################################
@@ -66,7 +68,7 @@ class PostgreSQLDatabase:
             return self.cursor.fetchone()[0]
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed checking if {table_name} exists: {error}")
+            logger.error(f"Failed checking if {table_name} exists: {error}")
             return False
 
 
@@ -87,10 +89,10 @@ class PostgreSQLDatabase:
                     ) for col_name, col_type in columns.items()))
             self.cursor.execute(create_table_query)
             self.connection.commit()
-            print(f"[INFO] Table {table_name} created successfully")
+            logger.info(f"Table {table_name} created successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed creating table: {error}")
+            logger.error(f"Failed creating table: {error}")
 
 
     def drop_table(self, table_name):
@@ -102,10 +104,10 @@ class PostgreSQLDatabase:
                 sql.Identifier(table_name))
             self.cursor.execute(drop_table_query)
             self.connection.commit()
-            print(f"[INFO] Table {table_name} dropped successfully")
+            logger.info(f"Table {table_name} dropped successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed dropping table: {error}")
+            logger.error(f"Failed dropping table: {error}")
 
 
     def backup_table(self, table_name):
@@ -128,11 +130,11 @@ class PostgreSQLDatabase:
             df = pd.DataFrame(rows, columns=column_names)
             # Save as Parquet
             df.to_parquet(backup_path, index=False)
-            print(f"[INFO] Table {table_name} backed up to {backup_path}")
+            logger.info(f"Table {table_name} backed up to {backup_path}")
             return None
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed backing up table {table_name}: {error}")
+            logger.error(f"Failed backing up table {table_name}: {error}")
             return None
 
     
@@ -155,10 +157,10 @@ class PostgreSQLDatabase:
             self.cursor.executemany(insert_query, data)
             self.connection.commit()
             prompt = "1 row" if len(data) == 1 else f"{len(data)} rows"
-            print(f"[INFO] Inserted {prompt} into {table_name}")
+            logger.info(f"Inserted {prompt} into {table_name}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed inserting data: {error}")
+            logger.error(f"Failed inserting data: {error}")
 
 
     def remove_data(self, table_name, condition_column, condition_value):
@@ -177,10 +179,10 @@ class PostgreSQLDatabase:
             row_count = self.cursor.rowcount
             self.connection.commit()
             prompt = "1 row" if row_count == 1 else f"{row_count} rows"
-            print(f"[INFO] Deleted {prompt} from {table_name} where {condition_column} = {condition_value}")
+            logger.info(f"Deleted {prompt} from {table_name} where {condition_column} = {condition_value}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed deleting data: {error}")
+            logger.error(f"Failed deleting data: {error}")
 
 
     def query_data(self, table_name, columns='*', condition=None):
@@ -214,7 +216,7 @@ class PostgreSQLDatabase:
             return results
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed querying data: {error}")
+            logger.error(f"Failed querying data: {error}")
             return []
 
     
@@ -239,10 +241,10 @@ class PostgreSQLDatabase:
                     sql.Identifier('movies'))
             self.cursor.executemany(query, data)
             self.connection.commit()
-            print("[INFO] Upserted movie data successfully")
+            logger.info("Upserted movie data successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed upserting metadata: {error}")
+            logger.error(f"Failed upserting metadata: {error}")
 
 
     def upsert_review_data(self, data):
@@ -265,10 +267,10 @@ class PostgreSQLDatabase:
             """
             self.cursor.executemany(query, data)
             self.connection.commit()
-            print("[INFO] Upserted reviews successfully")
+            logger.info("Upserted reviews successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed upserting reviews: {error}")
+            logger.error(f"Failed upserting reviews: {error}")
 
 
     def update_sentiment_data(self, data):
@@ -299,7 +301,7 @@ class PostgreSQLDatabase:
             self.connection.commit()
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed updating sentiment data: {error}")
+            logger.error(f"Failed updating sentiment data: {error}")
 
 
     def reset_indicator(self, review_id):
@@ -309,4 +311,4 @@ class PostgreSQLDatabase:
             self.connection.commit()
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            print(f"[ERROR] Failed resetting process indicator for review #{review_id}: {error}")
+            logger.error(f"Failed resetting process indicator for review #{review_id}: {error}")
