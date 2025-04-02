@@ -28,26 +28,26 @@ class IMDb:
         try:
             # Load main page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
-            print(f"[INFO] Loading IMDb main page for movie #{movie_id}")
+            print(f"[INFO] Scrapping metadata for MOVIE #{movie_id}")
             
             # Wait for and extract title
             title_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//span[@data-testid="hero__primary-text"]'))
             )
             movie_title = title_element.text.strip()
-            print(f"[INFO] Extracting movie title: {movie_title}")
+            print(f"[INFO] Movie title: {movie_title}")
             
             # Wait for and extract release date
             release_date_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//li[@data-testid="title-details-releasedate"]//a[@class="ipc-metadata-list-item__list-content-item ipc-metadata-list-item__list-content-item--link"]'))
             )
             release_date = release_date_element.text.split(" (")[0].strip()
-            print(f"[INFO] Extracting release date: {release_date}")
+            print(f"[INFO] Release date: {release_date}")
             
             return movie_title, release_date
         
         except Exception as e:
-            print(f"[ERROR] Failed to get movie data: {e}")
+            print(f"[ERROR] Failed to get metadata: {e}")
             return None
 
     
@@ -55,7 +55,7 @@ class IMDb:
         try:
             # Load review page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
-            print(f"[INFO] Loading IMDb reviews page for movie #{movie_id}")
+            print(f"[INFO] Scrapping REVIEWS for movie #{movie_id}")
         
             # Wait for, extract and parse the number of reviews
             reviews_element = self.wait.until(
@@ -79,7 +79,7 @@ class IMDb:
     def get_reviews(self, movie_id, total_reviews):
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
-        print(f"[INFO] Loading IMDb reviews page for movie #{movie_id}")
+        print(f"[INFO] Loading the Reviews page for movie #{movie_id}")
         time.sleep(7)
 
         # Click the button to display all reviews, using JavaScript to avoid interception issues
@@ -160,10 +160,10 @@ class IMDb:
                     "date": review_date,
                     "upvotes": upvotes, 
                     "downvotes": downvotes, 
-                    "scrapping_timestamp": datetime.now().strftime("%Y%m%d_%H%M%S")
+                    "last_update": datetime.now().strftime("%Y%m%d_%H%M%S")
                 })
             except Exception as e:
-                print(f"[ERROR] Failed to extract data from a review: {e}")
+                print(f"[ERROR] Failed to extract data for a review: {e}")
                 continue
 
         # Create a dataframe from the collected data
@@ -176,7 +176,6 @@ class IMDb:
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load
-        print(f"[INFO] Getting text behind spoiler markup for review #{review_id}")
 
         try:
             # Locate the spoiler button and click it
