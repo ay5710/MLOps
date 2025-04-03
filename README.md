@@ -57,6 +57,9 @@ With...
 - ...
 
 ### To do
+- Add a function to remove movies
+- Implement external S3 access for Docker
+- Autocleaning of S3 directory => keep lonly the 5 last files for each table
 - Implement consistency checks for the results of scrapping and API calls
 - Offer the possibility to add new movies from the dashboard, preferably without too many reviews to reduce processing times
 - *Optionnal:* use [enlighten](https://python-enlighten.readthedocs.io/en/stable/index.html) for progress bars
@@ -71,3 +74,9 @@ With...
 - Logs are collected
 - A test procedure is available => select an old movie with 2-3 reviews to run the code on
 - A Docker container is provided with postgresql install
+
+### Improvements
+Which could have been done but have not...
+- Use playwright for scrapping (more flexible than Selenium)
+- Parallelize by running 1 main script per movie => would have require to move the db to asynchronous
+- Implement (more) tests => but the log is already quite verbose

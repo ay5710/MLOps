@@ -1,5 +1,7 @@
 chromedriver-py
+colorlog
 openai
 psycopg
+s3fs
 schedule
 selenium
