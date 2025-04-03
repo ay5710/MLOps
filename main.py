@@ -4,6 +4,7 @@ import s3fs
 import tqdm
 
 from datetime import datetime
+from dotenv import load_dotenv
 from src.analysis import GPT
 from src.scrapping import IMDb
 from src.utils.db import PostgreSQLDatabase
@@ -155,8 +156,12 @@ else:
 logger.info("Backing up...")
 
 # Configuring S3
-S3_ENDPOINT_URL = 'https://' + os.environ['AWS_S3_ENDPOINT']
-fs = s3fs.S3FileSystem(client_kwargs={'endpoint_url': S3_ENDPOINT_URL})
+load_dotenv()
+fs = s3fs.S3FileSystem(
+    client_kwargs={'endpoint_url': 'https://' + os.environ['AWS_S3_ENDPOINT']},
+    key = os.environ["AWS_ACCESS_KEY_ID"], 
+    secret = os.environ["AWS_SECRET_ACCESS_KEY"], 
+    token = os.environ["AWS_SESSION_TOKEN"])
 bucket_name = 'maeldieudonne'
 destination = bucket_name + '/diffusion/'
 

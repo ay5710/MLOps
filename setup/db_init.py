@@ -5,6 +5,7 @@ import re
 import s3fs
 
 from datetime import datetime
+from dotenv import load_dotenv
 from src.utils.db import PostgreSQLDatabase
 
 
@@ -14,8 +15,12 @@ db.connect()
 
 
 # Connect to S3
-S3_ENDPOINT_URL = 'https://' + os.environ['AWS_S3_ENDPOINT']
-fs = s3fs.S3FileSystem(client_kwargs={'endpoint_url': S3_ENDPOINT_URL})
+load_dotenv()
+fs = s3fs.S3FileSystem(
+    client_kwargs={'endpoint_url': 'https://' + os.environ['AWS_S3_ENDPOINT']},
+    key = os.environ["AWS_ACCESS_KEY_ID"], 
+    secret = os.environ["AWS_SECRET_ACCESS_KEY"], 
+    token = os.environ["AWS_SESSION_TOKEN"])
 bucket_name = 'maeldieudonne'
 destination = bucket_name + '/diffusion/'
 
