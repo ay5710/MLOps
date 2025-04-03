@@ -1,4 +1,6 @@
+bs4
 chromedriver-py
+dotenv
 colorlog
 numpy
 openai
