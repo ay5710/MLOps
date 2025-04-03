@@ -9,10 +9,11 @@ from src.utils.logger import get_backend_logger
 
 logger = get_backend_logger()
 
+
 class PostgreSQLDatabase:
     def __init__(self, admin=False):
         """
-        Initialize database connection parameters.
+        Initialize database connection parameters
         """
         load_dotenv()
         self.connection_params = {
@@ -28,7 +29,7 @@ class PostgreSQLDatabase:
 
     def connect(self):
         """
-        Establish a connection to the PostgreSQL database.
+        Establish a connection to the PostgreSQL database
         """
         try:
             self.connection = psycopg.connect(**self.connection_params)
@@ -40,7 +41,7 @@ class PostgreSQLDatabase:
 
     def close_connection(self):
         """
-        Close database connection and cursor.
+        Close database connection and cursor
         """
         if self.connection:
             self.cursor.close()
@@ -55,7 +56,7 @@ class PostgreSQLDatabase:
 
     def table_exists(self, table_name):
         """
-        Check if a table exists in the database.
+        Check if a table exists in the database
         """
         try:
             check_query = sql.SQL("""
@@ -74,7 +75,7 @@ class PostgreSQLDatabase:
 
     def create_table(self, table_name, columns):
         """
-        Create a new table in the database.
+        Create a new table in the database
 
         :table_name: Name of the table to create
         :columns: Dictionary of column names and their data types
@@ -97,7 +98,7 @@ class PostgreSQLDatabase:
 
     def drop_table(self, table_name):
         """
-        Drop an existing table from the database.
+        Drop an existing table from the database
         """
         try:
             drop_table_query = sql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
@@ -112,7 +113,7 @@ class PostgreSQLDatabase:
 
     def backup_table(self, table_name):
         """
-        Backup a table to a Parquet file in the data/backups/ directory.
+        Backup a table to a Parquet file in the data/backups/ directory
         """
         try:
             # Ensure backup directory exists
@@ -145,7 +146,7 @@ class PostgreSQLDatabase:
     
     def insert_data(self, table_name, data):
         """
-        Insert data into a specified table.
+        Insert data into a specified table
 
         :param table_name: Name of the table
         :param data: List of tuples containing row data
@@ -165,7 +166,7 @@ class PostgreSQLDatabase:
 
     def remove_data(self, table_name, condition_column, condition_value):
         """
-        Remove data from a specified table based on a condition.
+        Remove data from a specified table based on a condition
 
         :param table_name: Name of the table
         :param condition_column: Column name for the condition
@@ -187,7 +188,7 @@ class PostgreSQLDatabase:
 
     def query_data(self, table_name, columns='*', condition=None):
         """
-        Query data from a specified table.
+        Query data from a specified table
 
         :param table_name: Name of the table
         :param columns: Columns to select (default: all)
@@ -275,7 +276,7 @@ class PostgreSQLDatabase:
 
     def update_sentiment_data(self, data):
         """
-        Insert data into a specified table, updating existing rows if review_id conflicts.
+        Insert data into a specified table, updating existing rows if review_id conflicts
 
         :param table_name: Name of the table
         :param data: List of tuples containing row data
