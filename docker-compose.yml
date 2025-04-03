@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    environment:
+      - DB_NAME=MLOps-db
+      - DB_USER=MLOps-user
+      - DB_PASSWORD=${DB_PASSWORD:-mlops_password}
+      - DB_HOST=db
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-}
+    volumes:
+      - ./:/app
+    depends_on:
+      - db
+    restart: unless-stopped
+    command: ["/bin/bash", "-c", "sleep 10 && /app/venv/bin/python setup/db_init.py && /app/venv/bin/python scheduler.py"]
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=MLOps-db
+      - POSTGRES_USER=MLOps-user
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-mlops_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
