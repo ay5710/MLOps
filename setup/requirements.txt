@@ -1,5 +1,10 @@
+bs4
 chromedriver-py
+dotenv
+colorlog
+numpy
 openai
 psycopg
+s3fs
 schedule
 selenium

@@ -2,8 +2,8 @@ import schedule
 import time
 import subprocess
 
+
 def run_main_py():
-    """Runs the main.py script."""
     try:
         subprocess.run(["python", "main.py"], check=True) # Raise an exception if the subprocess returns a nonzero exit code
         print("main.py executed successfully")
