@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
-    postgresql-client \  # Only need client libs, not the server
+    postgresql-client \
     curl \
     unzip \
     && rm -rf /var/lib/apt/lists/*
