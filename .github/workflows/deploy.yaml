@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
@@ -29,7 +29,7 @@ jobs:
             --build-arg AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }} \
             --build-arg AWS_S3_ENDPOINT=${{ secrets.AWS_S3_ENDPOINT }} \
             --build-arg AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }} \
-            -t my-python-app .
+            -t maeldieudonne/mlops:latest .
 
       - name: Push Docker image
-        run: docker push maeldieudonne/mlops
+        run: docker push maeldieudonne/mlops:latest

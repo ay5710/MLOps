@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 COPY . /app
 
 # Install Python dependencies
-RUN pip install --no-cache-dir python-dotenv -r ./setup/requirements.txt
+RUN pip install --no-cache-dir -r ./setup/requirements.txt
 
 # Ensure environment variables are available to Python
 ENV DB_NAME="" \
