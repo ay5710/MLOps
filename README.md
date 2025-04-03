@@ -28,7 +28,7 @@ Then, run `python -m setup.db_init`
 
 OpenAI: set the OPENAI_API_KEY in the `.env` file.
 
-Launch the scheduler with `nohup python scheduler.py &` (and check if it's running with `pgrep -fl scheduler.py`)
+Launch the scheduler with `python scheduler.py &` (and check if it's running with `pgrep -fl scheduler.py`)
 
 Add a movie to track with `python -m src.utils.add_movie <movie_id>` (where `<movie_id>` must be retrieved manually from IMDb)
 

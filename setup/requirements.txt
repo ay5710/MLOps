@@ -1,5 +1,6 @@
 chromedriver-py
 colorlog
+numpy
 openai
 psycopg
 s3fs

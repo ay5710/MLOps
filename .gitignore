@@ -176,3 +176,5 @@ cython_debug/
 # Others
 .DS_Store
 .parquet
+.out
+bin/
