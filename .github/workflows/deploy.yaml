@@ -32,4 +32,4 @@ jobs:
             -t my-python-app .
 
       - name: Push Docker image
-        run: docker push my-python-app
+        run: docker push maeldieudonne/mlops
