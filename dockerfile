@@ -14,8 +14,11 @@ RUN apt-get update && apt-get install -y \
 # Copy project files
 COPY . /app
 
+# Create and activate a virtual environment
+RUN python3 -m venv /app/venv
+
 # Install Python dependencies
-RUN pip install --no-cache-dir -r ./setup/requirements.txt
+RUN /app/venv/bin/pip install --no-cache-dir -r ./setup/requirements.txt
 
 # Ensure environment variables are available to Python
 ENV DB_NAME="" \
@@ -41,5 +44,8 @@ RUN echo "DB_NAME=$DB_NAME" >> /app/.env && \
     echo "AWS_S3_ENDPOINT=$AWS_S3_ENDPOINT" >> /app/.env && \
     echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> /app/.env
 
+# Use bash explicitly
+SHELL ["/bin/bash", "-c"]
+
 # Run the application
-CMD ["sh", "-c", "source virtualenv/bin/activate && python scheduler.py"]
+CMD ["/bin/bash", "-c", "/app/venv/bin/python setup/db_init.py && /app/venv/bin/python scheduler.py"]
