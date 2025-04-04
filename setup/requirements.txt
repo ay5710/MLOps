@@ -1,10 +1,13 @@
 bs4
 chromedriver-py
-dotenv
 colorlog
+datetime
+dotenv
 numpy
 openai
+pandas
 psycopg
 s3fs
 schedule
 selenium
+tqdm

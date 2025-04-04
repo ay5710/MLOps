@@ -21,17 +21,25 @@ services:
       - ./tracker/logs:/app/logs
       - ./tracker/setup:/app/setup
       - ./tracker/src:/app/src
-    restart: unless-stopped
-    command: ["/bin/bash", "-c", "sleep 10 && /app/venv/bin/python setup/db_init.py && /app/venv/bin/python scheduler.py"]
+    restart: no
+    command: ["/bin/bash", "-c", "until pg_isready -h db -p 5432; do echo 'Waiting for database...'; sleep 5; done && /app/venv/bin/python setup/db_init.py && /app/venv/bin/python scheduler.py"]
+    networks:
+      - mlops-network
 
   db:
-    image: postgres:15
+    image: postgres:16
     environment:
-      - POSTGRES_DB
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
     - ./db:/var/lib/postgresql/data
     ports:
       - "5433:5432"
-    restart: unless-stopped
+    restart: no
+    networks:
+      - mlops-network
+
+networks:
+  mlops-network:
+    driver: bridge
