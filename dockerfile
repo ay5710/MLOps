@@ -16,6 +16,7 @@ COPY . /app
 
 # Create and activate a virtual environment
 RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
 
 # Install Python dependencies
 RUN /app/venv/bin/pip install --no-cache-dir -r ./setup/requirements.txt
