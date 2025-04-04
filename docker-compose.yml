@@ -1,39 +1,37 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile.app
-    environment:
-      - DB_NAME=MLOps-db
-      - DB_USER=MLOps-user
-      - DB_PASSWORD=${DB_PASSWORD:-mlops_password}
-      - DB_HOST=db
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
-      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
-      - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-}
-    volumes:
-      - ./:/app
+  tracker:
+    image: maeldieudonne/mlops:latest
     depends_on:
       - db
+    environment:
+      - DB_NAME
+      - DB_USER
+      - DB_PASSWORD
+      - DB_HOST
+      - OPENAI_API_KEY
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_S3_ENDPOINT
+      - AWS_DEFAULT_REGION
+    volumes:
+      - ./tracker/data:/app/data
+      - ./tracker/logs:/app/logs
+      - ./tracker/setup:/app/setup
+      - ./tracker/src:/app/src
     restart: unless-stopped
     command: ["/bin/bash", "-c", "sleep 10 && /app/venv/bin/python setup/db_init.py && /app/venv/bin/python scheduler.py"]
 
   db:
     image: postgres:15
     environment:
-      - POSTGRES_DB=MLOps-db
-      - POSTGRES_USER=MLOps-user
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-mlops_password}
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+    - ./db:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     restart: unless-stopped
-
-volumes:
-  postgres_data:

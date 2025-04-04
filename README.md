@@ -13,6 +13,7 @@ Orchestration by a scheduler running a main script periodically:
 Data is stored in a PostgreSQL database and saved in S3 => *this may not work in Docker*
 
 ### Installation
+#### In the DataLab
 Chrome: `chmod +x ./setup/chrome.sh && ./setup/chrome.sh`
 
 Python packages: `pip install -r ./setup/requirements.txt`
@@ -26,11 +27,21 @@ In the Datalab, launch a separate Postgresql service then update the `.env` with
 In Docker, the Postgresql is launched automatically and the parameters are set accordingly-hopefully...
 Then, run `python -m setup.db_init`
 
+For backups from outside the DataLab, add these parameters to the `.env` file:
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_SESSION_TOKEN=
+AWS_S3_ENDPOINT=
+AWS_DEFAULT_REGION=
+
 OpenAI: set the OPENAI_API_KEY in the `.env` file.
 
 Launch the scheduler with `python scheduler.py &` (and check if it's running with `pgrep -fl scheduler.py`)
 
-Add a movie to track with `python -m src.utils.add_movie <movie_id>` (where `<movie_id>` must be retrieved manually from IMDb)
+=> *Add a movie to track with `python -m src.utils.add_movie <movie_id>` (where `<movie_id>` must be retrieved manually from IMDb)*
+
+#### With Docker
+Use the provided `docker-compose.yml` file and the same `.env` as above.
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
@@ -58,8 +69,7 @@ With...
 
 ### To do
 - Add a function to remove movies
-- Implement external S3 access for Docker
-- Autocleaning of S3 directory => keep lonly the 5 last files for each table
+- Autocleaning of S3 directory => keep lonly the 5 last files for each table => lacks permissions?
 - Implement consistency checks for the results of scrapping and API calls
 - Offer the possibility to add new movies from the dashboard, preferably without too many reviews to reduce processing times
 - *Optionnal:* use [enlighten](https://python-enlighten.readthedocs.io/en/stable/index.html) for progress bars
