@@ -41,7 +41,7 @@ Launch the scheduler with `python scheduler.py &` (and check if it's running wit
 => *Add a movie to track with `python -m src.utils.add_movie <movie_id>` (where `<movie_id>` must be retrieved manually from IMDb)*
 
 #### With Docker
-Use the provided `docker-compose.yml` file and the same `.env` as above (with `DB_HOST=localhost`).
+Use the provided `docker-compose.yml` file and the same `.env` as above (with `DB_HOST=db`).
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:

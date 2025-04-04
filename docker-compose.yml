@@ -16,13 +16,14 @@ services:
       - AWS_SESSION_TOKEN
       - AWS_S3_ENDPOINT
       - AWS_DEFAULT_REGION
+      - PYTHONPATH=/app
     volumes:
       - ./tracker/data:/app/data
       - ./tracker/logs:/app/logs
       - ./tracker/setup:/app/setup
       - ./tracker/src:/app/src
     restart: no
-    command: ["/bin/bash", "-c", "until pg_isready -h db -p 5432; do echo 'Waiting for database...'; sleep 5; done && /app/venv/bin/python setup/db_init.py && /app/venv/bin/python scheduler.py"]
+    command: ["/bin/bash", "-c", "until pg_isready -h db -p 5432; do echo 'Waiting for database...'; sleep 5; done && cd /app && /app/venv/bin/python setup/db_init.py && /app/venv/bin/python scheduler.py"]
     networks:
       - mlops-network
 
