@@ -10,6 +10,7 @@ openai
 pandas
 psycopg
 pyarrow
+pytest
 requests
 s3fs
 s3transfer

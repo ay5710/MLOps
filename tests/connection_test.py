@@ -1,0 +1,18 @@
+import pytest
+from src.utils.db import PostgreSQLDatabase
+from src.utils.s3 import s3
+
+
+def test_postgresql_connection():
+    db = PostgreSQLDatabase()
+    try:
+        db.connect()
+    except Exception as e:
+        pytest.fail(f"PostgreSQL connection failed: {e}")
+
+
+def test_s3_initialization():
+    try:
+        s3_client = s3()
+    except Exception as e:
+        pytest.fail(f"S3 initialization failed: {e}")

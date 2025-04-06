@@ -14,7 +14,7 @@ from src.utils.s3 import s3
 
 setup_logging()
 logger = get_backend_logger()
-logger.info("Start logging")
+logger.info("Launching main script")
 
 db = PostgreSQLDatabase()
 db.connect()
