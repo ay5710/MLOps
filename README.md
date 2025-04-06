@@ -14,9 +14,11 @@ Data is stored in a PostgreSQL database and saved in S3 => *this may not work in
 
 ### Installation
 #### In the DataLab
-Chrome: `chmod +x ./setup/chrome.sh && ./setup/chrome.sh`
+An installation script is available (to be launched with `chmod +x ./install.sh && ./install.sh`) which performs the following operations:
 
-Python packages: `pip install -r ./setup/requirements.txt`
+(1) Chrome: `chmod +x ./setup/chrome.sh && ./setup/chrome.sh`
+
+(2) Python packages: `pip install -r ./setup/requirements.txt`
 
 Databases: 
 In the Datalab, launch a separate Postgresql service then update the `.env` with its parameters:
@@ -25,7 +27,7 @@ In the Datalab, launch a separate Postgresql service then update the `.env` with
 - DB_PASSWORD=
 - DB_HOST=
 In Docker, the Postgresql is launched automatically and the parameters are set accordingly-hopefully...
-Then, run `python -m setup.db_init`
+Then, run `python -m setup.db_init.py`
 
 For backups from outside the DataLab, add these parameters to the `.env` file:
 AWS_ACCESS_KEY_ID=
@@ -34,9 +36,9 @@ AWS_SESSION_TOKEN=
 AWS_S3_ENDPOINT=
 AWS_DEFAULT_REGION=
 
-OpenAI: set the OPENAI_API_KEY in the `.env` file.
+(3) OpenAI: set the OPENAI_API_KEY in the `.env` file.
 
-Launch the scheduler with `python scheduler.py &` (and check if it's running with `pgrep -fl scheduler.py`)
+(4) Launch the scheduler with `python scheduler.py &` (and check if it's running with `pgrep -fl scheduler.py`)
 
 => *Add a movie to track with `python -m src.utils.add_movie <movie_id>` (where `<movie_id>` must be retrieved manually from IMDb)*
 

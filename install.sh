@@ -15,6 +15,7 @@ python3 -m venv virtualenv
 source virtualenv/bin/activate
 
 echo "Installing Python depencies..."
+python3 -m pip install --upgrade pip
 pip install -r ./setup/requirements.txt
 
 # Creating the tables and restoring backup
