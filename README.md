@@ -20,7 +20,7 @@ Launch a Postgresql service then create an `.env` file with the following parame
 - DB_PASSWORD=
 - DB_HOST=
 
-Launche the installation script with `chmod +x ./install.sh && ./install.sh`. This script:
+Launche the installation script with `chmod +x ./install.sh && source ./install.sh`. This script:
 1. Installs Chrome
 2. Installs Python and dependencies within a virtual environment
 3. Sets up the database
