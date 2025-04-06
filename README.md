@@ -14,36 +14,37 @@ Data is stored in a PostgreSQL database and saved in S3 => *this may not work in
 
 ### Installation
 #### In the DataLab
-An installation script is available (to be launched with `chmod +x ./install.sh && ./install.sh`) which performs the following operations:
-
-(1) Chrome: `chmod +x ./setup/chrome.sh && ./setup/chrome.sh`
-
-(2) Python packages: `pip install -r ./setup/requirements.txt`
-
-Databases: 
-In the Datalab, launch a separate Postgresql service then update the `.env` with its parameters:
+Launch a Postgresql service then create an `.env` file with the following parameters:
 - DB_NAME=
 - DB_USER=
 - DB_PASSWORD=
 - DB_HOST=
-In Docker, the Postgresql is launched automatically and the parameters are set accordingly-hopefully...
-Then, run `python -m setup.db_init.py`
 
-For backups from outside the DataLab, add these parameters to the `.env` file:
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_SESSION_TOKEN=
-AWS_S3_ENDPOINT=
-AWS_DEFAULT_REGION=
+Launche the installation script with `chmod +x ./install.sh && ./install.sh`. This script:
+1. Installs Chrome
+2. Installs Python and dependencies within a virtual environment
+3. Sets up the database
+4. Saves the openAI token
+5. Launches the scheduler
 
-(3) OpenAI: set the OPENAI_API_KEY in the `.env` file.
-
-(4) Launch the scheduler with `python scheduler.py &` (and check if it's running with `pgrep -fl scheduler.py`)
+The state of the scheduler can be checked with `pgrep -fl scheduler.py`.
 
 => *Add a movie to track with `python -m src.utils.add_movie <movie_id>` (where `<movie_id>` must be retrieved manually from IMDb)*
 
 #### With Docker
-Use the provided `docker-compose.yml` file and the same `.env` as above (with `DB_HOST=db`).
+A `docker-compose.yml` is provided which runs both the project and the database. 
+
+An `.env` file is necessary with the following variables, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage:
+- DB_NAME=*<to be set>*
+- DB_USER=*<to be set>*
+- DB_PASSWORD=*<to be set>*
+- DB_HOST=db
+- OPENAI_API_KEY=*<to be set>*
+- AWS_ACCESS_KEY_ID=
+- AWS_SECRET_ACCESS_KEY=
+- AWS_SESSION_TOKEN=
+- AWS_S3_ENDPOINT=
+- AWS_DEFAULT_REGION=
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
