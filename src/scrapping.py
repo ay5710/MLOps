@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import re
 import shutil
@@ -18,9 +19,15 @@ logger = get_backend_logger()
 class IMDb:
     def __init__(self):
         self.temp_profile_dir = tempfile.mkdtemp()
+        os.chmod(self.temp_profile_dir, 0o777) 
+        logger.info(f"Chrome user-data-dir: {self.temp_profile_dir}")
+
         
         chrome_options = Options()
         chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36")
         chrome_options.add_argument(f"--user-data-dir={self.temp_profile_dir}")
@@ -241,4 +248,5 @@ class IMDb:
         if hasattr(self, 'driver'):
             self.driver.quit()
             shutil.rmtree(self.temp_profile_dir, ignore_errors=True)
-            logger.info("Browser closed and temp directory cleaned up")
+            logger.info("Browser closed")
+            logger.info(f"Temp directory ({self.temp_profile_dir}) cleaned up")
