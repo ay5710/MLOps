@@ -9,17 +9,18 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     curl \
     unzip \
-    && rm -rf /var/lib/apt/lists/*
+    wget \
+    gnupg \
+ && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg \
+ && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+ && apt-get update && apt-get install -y google-chrome-stable \
+ && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file first (for better layer caching)
 COPY ./setup/requirements.txt /app/setup/
 
 # Install Python dependencies directly (no virtual environment needed in Docker)
 RUN pip install --no-cache-dir -r ./setup/requirements.txt
-
-# Copy Chrome installation script and run it
-COPY ./setup/chrome.sh /app/setup/
-RUN chmod +x /app/setup/chrome.sh && /app/setup/chrome.sh
 
 # Copy the rest of the application
 COPY . /app

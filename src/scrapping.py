@@ -1,5 +1,7 @@
 import pandas as pd
 import re
+import shutil
+import tempfile
 import time
 
 from bs4 import BeautifulSoup
@@ -15,10 +17,14 @@ logger = get_backend_logger()
 
 class IMDb:
     def __init__(self):
+        self.temp_profile_dir = tempfile.mkdtemp()
+        
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36")
+        chrome_options.add_argument(f"--user-data-dir={self.temp_profile_dir}")
+
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 10)
         logger.info("Launching browser")
@@ -234,4 +240,5 @@ class IMDb:
     def close(self):
         if hasattr(self, 'driver'):
             self.driver.quit()
-            logger.info("Closing browser")
+            shutil.rmtree(self.temp_profile_dir, ignore_errors=True)
+            logger.info("Browser closed and temp directory cleaned up")

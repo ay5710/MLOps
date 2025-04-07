@@ -79,7 +79,7 @@ class s3:
 
         try:
             for file in files_to_delete:
-                logger.info(f"Attempting to delete {file}")
+                logger.debug(f"Attempting to delete {file}")
                 self.fs.rm(file)
                 logger.info(f"Deleted {file}")
         except Exception as e:
