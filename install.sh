@@ -48,4 +48,4 @@ echo "Token added to configuration file."
 
 
 # Launch the scheduler
-# python scheduler.py &
+python scheduler.py &
