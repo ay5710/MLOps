@@ -7,12 +7,12 @@ chmod +x ./setup/chrome.sh && ./setup/chrome.sh
 # Install Python and dependencies within a virtual environment
 echo "Installing Python..."
 sudo apt-get -y update
-sudo apt-get install -y python3 python3-pip python3-venv
+sudo apt-get install -y python3 python3-pip # python3-venv
 sudo python3 -m pip install --upgrade pip
 
-echo "Creating a venv..."
-python3 -m venv virtualenv
-source virtualenv/bin/activate
+# echo "Creating a venv..."
+# python3 -m venv virtualenv
+# source virtualenv/bin/activate
 
 echo "Installing Python depencies..."
 python3 -m pip install --upgrade pip

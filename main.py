@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import s3fs
+import time
 import tqdm
 
 from datetime import datetime
@@ -15,6 +16,8 @@ from src.utils.s3 import s3
 setup_logging()
 logger = get_backend_logger()
 logger.info("Launching main script")
+
+begin_time = time.time()
 
 db = PostgreSQLDatabase()
 db.connect()
@@ -148,6 +151,10 @@ else:
             data = [(review_id, *GPT_results)]
             db.update_sentiment_data(data)
             db.reset_indicator(review_id)
+        # Interrupt sentiment analysis if the script is about to have run for 1 hour
+        if time.time() - begin_time > 58 * 60:
+            loger.warning("Sentiment analysis taking too long, aborting...")
+            break
 
 
 ##################################

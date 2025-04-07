@@ -1,4 +1,4 @@
-from apscheduler.schedulers.blocking import BlockingScheduler
+import schedule
 import subprocess
 import time
 
@@ -12,20 +12,16 @@ logger.info("Launching scheduler")
 
 def run_main_py():
     try:
-        logger.info(f"Starting main.py at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-        subprocess.run(["python", "main.py"], check=True)
-        logger.info(f"Main.py executed successfully at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        subprocess.run(["python", "main.py"], check=True) # Raise an exception if the subprocess returns a nonzero exit code
+        logger.info("Starting main.py")
     except subprocess.CalledProcessError as e:
-        logger.error(f"Main.py raised error: {e}")
+        logger.error(f"Error executing main.py: {e}")
     except FileNotFoundError:
         logger.error("Main.py not found")
+ 
+# Schedule the job to run every hour
+schedule.every().hour.do(run_main_py)
 
-# Create a scheduler that won't run overlapping jobs
-scheduler = BlockingScheduler()
-scheduler.add_job(run_main_py, 'interval', hours=1, max_instances=1)
-
-try:
-    scheduler.start()
-except (KeyboardInterrupt, SystemExit):
-    pass
-
+while True:
+    schedule.run_pending()
+    time.sleep(1)

@@ -1,10 +1,11 @@
-This project was realised during the [Deployment of Data Science Projects](https://www.ensae.fr/courses/6052-mise-en-production-des-projets-de-data-science) course at ENSAE (see the [companion website](https://ensae-reproductibilite.github.io/website/)). It aims to track the reception of movies based on user reviews published on [IMDb](https://www.imdb.com).
+# The IMDb Reviews Tracker
+This project tracks the reception of movies based on user reviews published on [IMDb](https://www.imdb.com). It was realised during the [Deployment of Data Science Projects](https://www.ensae.fr/courses/6052-mise-en-production-des-projets-de-data-science) course at ENSAE (see the [companion website](https://ensae-reproductibilite.github.io/website/)).
 
 ### Implementation
-3 main components:
-- **scrapping** => with Selenium
-- **aspect-based sentiment analysis** => with the openAI API to query gpt-4o-mini
-- **dashboard** => with Streamlit?
+There are 3 main components:
+- **Web scrapping** => with Selenium
+- **Aspect-based sentiment analysis** => with the openAI API to query gpt-4o-mini
+- **Dashboard** => with Streamlit?
 
 Orchestration by a scheduler running a main script periodically:
 - Rescrap movie metadata every hour and check if new reviews have been published
