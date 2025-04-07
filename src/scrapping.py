@@ -24,8 +24,19 @@ class IMDb:
         logger.info("Launching browser")
 
 
-    def get_movie(self, movie_id):
+    @staticmethod
+    def restore_leading_zeros(raw_id, tot_lgt):
+        full_id = str(raw_id)
+        if len(full_id) < tot_lgt:
+            full_id = full_id.zfill(tot_lgt)
+            logger.debug("Restoring leading zeros for {raw_id}")
+        return full_id
+
+
+    def get_movie(self, raw_movie_id):
         try:
+            movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
+            
             # Load main page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
             logger.info("Scrapping metadata")
@@ -51,8 +62,10 @@ class IMDb:
             return None
 
 
-    def get_number_of_reviews(self, movie_id):
+    def get_number_of_reviews(self, raw_movie_id):
         try:
+            movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
+            
             # Load review page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
 
@@ -75,7 +88,9 @@ class IMDb:
             return None
 
 
-    def get_reviews(self, movie_id, total_reviews):
+    def get_reviews(self, raw_movie_id, total_reviews):
+        movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
+        
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
         logger.info("Scrapping reviews")
@@ -171,7 +186,9 @@ class IMDb:
         return reviews_df
 
 
-    def get_spoiler(self, review_id):
+    def get_spoiler(self, raw_review_id):
+        review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
+        
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load
@@ -190,7 +207,9 @@ class IMDb:
             return None
 
 
-    def get_votes(self, review_id):
+    def get_votes(self, raw_review_id):
+        review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
+        
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load

@@ -1,5 +1,4 @@
 arrow
-apscheduler
 beautifulsoup4
 chromedriver-py
 colorlog

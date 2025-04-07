@@ -29,7 +29,7 @@ db.connect()
 
 for movie_id in set(movie[0] for movie in db.query_data('movies')):
     logger.info(f"Beginning scraping for movie #{movie_id}")
-
+    
     ###   Scrap movie metadata   ###
 
     scrapper = IMDb()    

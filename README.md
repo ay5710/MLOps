@@ -7,7 +7,7 @@ There are 3 main components:
 - **Aspect-based sentiment analysis** => with the openAI API to query gpt-4o-mini
 - **Dashboard** => with Streamlit?
 
-Orchestration by a scheduler running a main script periodically:
+The main script is run periodically by a scheduler, and:
 - Rescrap movie metadata every hour and check if new reviews have been published
 - Rescrap everything every 24 hours or when new reviews are detected, launch the sentiment analysis and save
 
@@ -15,7 +15,7 @@ Data is stored in a PostgreSQL database and saved in S3 => *this may not work in
 
 ### Installation
 #### In the DataLab
-Launch a Postgresql service then create an `.env` file with the following parameters:
+Launch a Postgresql service then create an `.env` file with the corresponding parameters:
 - DB_NAME=
 - DB_USER=
 - DB_PASSWORD=
@@ -30,12 +30,12 @@ Launche the installation script with `chmod +x ./install.sh && source ./install.
 
 The state of the scheduler can be checked with `pgrep -fl scheduler.py`.
 
-=> *Add a movie to track with `python -m src.utils.add_movie <movie_id>` (where `<movie_id>` must be retrieved manually from IMDb)*
+=> *Add a movie to track with `python -m src.utils.add_movie '<movie_id>'` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix)*
 
 #### With Docker
 A `docker-compose.yml` is provided which runs both the project and the database. 
 
-An `.env` file is necessary with the following variables, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage:
+An `.env` file is necessary with the following variables, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage):
 - DB_NAME=*<to be set>*
 - DB_USER=*<to be set>*
 - DB_PASSWORD=*<to be set>*

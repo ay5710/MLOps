@@ -41,11 +41,20 @@ Now the review:
                 messages = [{"role": "user", "content": prompt}]
             )
         except Exception as e:
-            logger.info(f"API call failed for review: {e}")
+            logger.info(f"API call failed for review #{review[1]}: {e}")
             return None
 
         # Extract list from API answer
-        answer = ast.literal_eval(completion.choices[0].message.content)
+        try:
+            raw_answer = completion.choices[0].message.content
+            answer = ast.literal_eval(raw_answer)
+        except Exception as e1:
+            try:
+                clean_answer = raw_answer.replace("‘", "'").replace("’", "'").replace("“", '"').replace("”", '"')
+                answer = ast.literal_eval(clean_answer)
+            except Exception as e2:
+                logger.warning(f"Failed to parse GPT answer for review #{review[1]}: {e2}")
+                return None
 
         # Convert categories into integers
         sentiment_mapping = {
