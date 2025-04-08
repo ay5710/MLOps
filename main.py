@@ -49,19 +49,29 @@ for movie_id in set(movie[0] for movie in db.query_data('movies')):
         db.upsert_movie_data(movie_data)
 
         # Check if new reviews have been published or if the last scrapping is >24h old
-        old_total_reviews = db.query_data("movies", condition=f"movie_id = '{movie_id}'")[0][3]
-        old_total_reviews = int(old_total_reviews) if old_total_reviews is not None else 0
-        new_reviews = total_reviews - old_total_reviews
+        movie_row = db.query_data("movies", condition=f"movie_id = '{movie_id}'")[0]
+        declared_reviews = int(movie_row[3]) if movie_row[3] is not None else 0
+        new_reviews = total_reviews - declared_reviews
 
-        last_scrapping = db.query_data("movies", condition=f"movie_id = '{(movie_id)}'")[0][4]
+        last_scrapping = movie_row[4]
         time_since_scrapping = (datetime.now() - last_scrapping).seconds
 
         prompt = "No review" if new_reviews == 0 else f"{new_reviews} new reviews"
         logger.info(f"{prompt} published in the last {(time_since_scrapping / 3600):.2F} hours")
 
+        # Check if already published reviews have not been scrapped during the previous runs
+        old_total_reviews = len(db.query_data("reviews_raw", condition=f"movie_id = '{(movie_id)}'"))
+        old_total_reviews = int(old_total_reviews) if old_total_reviews is not None else 0
+        logger.info(f"{old_total_reviews} reviews already scrapped")
+
+        reviews_to_scrap = total_reviews - old_total_reviews
+        if reviews_to_scrap == 0:
+            logger.info("No additional review to scrap")
+
     ###   Scrap reviews   ###
 
-    if new_movie == 1 or new_reviews > 0 or time_since_scrapping > 86400:
+    if new_movie == 1 or reviews_to_scrap > 0 or time_since_scrapping > 86400:
+        logger.info(f"{reviews_to_scrap} to scrap")
         reviews_df = scrapper.get_reviews(movie_id, total_reviews)
 
         # Get the text hidden behind spoiler markup

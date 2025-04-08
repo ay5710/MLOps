@@ -107,7 +107,7 @@ class IMDb:
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
         logger.info("Scrapping reviews")
-        time.sleep(7)
+        time.sleep(10)
 
         # Click the button to display all reviews, using JavaScript to avoid interception issues
         if total_reviews > 25:
@@ -125,7 +125,7 @@ class IMDb:
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             logger.info("Scrolling down...")
-            time.sleep(1)  # Give time for new reviews to load
+            time.sleep(2)  # Give time for new reviews to load
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
                 break  # Stop when no new content loads
