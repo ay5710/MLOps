@@ -13,8 +13,12 @@ def add_movie(movie_id):
     db = PostgreSQLDatabase()
     try:
         db.connect()
-        db.insert_data("movies", data=[(movie_id, None)])
-        logger.info(f"Added movie #{movie_id} to the database.")
+        result = db.query_data("movies", condition=f"movie_id = '{movie_id}'")
+        if result:
+            logger.warning(f"Movie #{movie_id} already present in the database")
+        else:
+            db.insert_data("movies", data=[(movie_id, None)])
+            logger.info(f"Added movie #{movie_id} to the database")
     except Exception as e:
         logger.error(f"Failed to add movie #{movie_id} to the database: {e}")
     finally:
@@ -29,9 +33,9 @@ def remove_movie(movie_id):
         result = db.query_data("movies", condition=f"movie_id = '{movie_id}'")
         if result:
             db.remove_data("movies", "movie_id", movie_id)
-            logger.info(f"Removed movie #{movie_id} from the database.")
+            logger.info(f"Removed movie #{movie_id} from the database")
         else:
-            logger.warning(f"Movie #{movie_id} not found in the database.")
+            logger.warning(f"Movie #{movie_id} not found in the database")
     except Exception as e:
         logger.error(f"Failed to remove movie #{movie_id} from the database: {e}")
     finally:
