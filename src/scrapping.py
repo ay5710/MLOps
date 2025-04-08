@@ -16,13 +16,13 @@ from src.utils.logger import get_backend_logger
 
 logger = get_backend_logger()
 
+
 class IMDb:
     def __init__(self):
         self.temp_profile_dir = tempfile.mkdtemp()
-        os.chmod(self.temp_profile_dir, 0o777) 
-        logger.info(f"Chrome user-data-dir: {self.temp_profile_dir}")
+        os.chmod(self.temp_profile_dir, 0o777)
+        logger.debug(f"Chrome user-data-dir: {self.temp_profile_dir}")
 
-        
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
@@ -49,7 +49,7 @@ class IMDb:
     def get_movie(self, raw_movie_id):
         try:
             movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-            
+
             # Load main page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
             logger.info("Scrapping metadata")
@@ -78,7 +78,7 @@ class IMDb:
     def get_number_of_reviews(self, raw_movie_id):
         try:
             movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-            
+
             # Load review page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
 
@@ -103,7 +103,7 @@ class IMDb:
 
     def get_reviews(self, raw_movie_id, total_reviews):
         movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-        
+
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
         logger.info("Scrapping reviews")
@@ -201,7 +201,7 @@ class IMDb:
 
     def get_spoiler(self, raw_review_id):
         review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
-        
+
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load
@@ -222,7 +222,7 @@ class IMDb:
 
     def get_votes(self, raw_review_id):
         review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
-        
+
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load
@@ -249,4 +249,4 @@ class IMDb:
             self.driver.quit()
             shutil.rmtree(self.temp_profile_dir, ignore_errors=True)
             logger.info("Browser closed")
-            logger.info(f"Temp directory ({self.temp_profile_dir}) cleaned up")
+            logger.debug(f"Temp directory ({self.temp_profile_dir}) cleaned up")

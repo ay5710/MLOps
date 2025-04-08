@@ -138,12 +138,12 @@ class PostgreSQLDatabase:
             logger.error(f"Failed backing up table {table_name}: {error}")
             return None
 
-    
+
 ######################################
 #       Generic data functions       #
 ######################################
 
-    
+
     def insert_data(self, table_name, data):
         """
         Insert data into a specified table
@@ -158,7 +158,7 @@ class PostgreSQLDatabase:
             self.cursor.executemany(insert_query, data)
             self.connection.commit()
             prompt = "1 row" if len(data) == 1 else f"{len(data)} rows"
-            logger.info(f"Inserted {prompt} into {table_name}")
+            logger.debug(f"Inserted {prompt} into {table_name}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
             logger.error(f"Failed inserting data: {error}")
@@ -180,7 +180,7 @@ class PostgreSQLDatabase:
             row_count = self.cursor.rowcount
             self.connection.commit()
             prompt = "1 row" if row_count == 1 else f"{row_count} rows"
-            logger.info(f"Deleted {prompt} from {table_name} where {condition_column} = {condition_value}")
+            logger.debug(f"Deleted {prompt} from {table_name} where {condition_column} = {condition_value}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
             logger.error(f"Failed deleting data: {error}")
@@ -211,7 +211,7 @@ class PostgreSQLDatabase:
                     select_query = sql.SQL("SELECT {} FROM {} WHERE {}").format(
                         sql.SQL(', ').join(sql.Identifier(col) for col in columns),
                         sql.Identifier(table_name),
-                        sql.SQL(condition))            
+                        sql.SQL(condition))
             self.cursor.execute(select_query)
             results = self.cursor.fetchall()
             return results
@@ -220,12 +220,12 @@ class PostgreSQLDatabase:
             logger.error(f"Failed querying data: {error}")
             return []
 
-    
+
 ######################################
 #       Specific data functions       #
 ######################################
 
-            
+
     def upsert_movie_data(self, data):
         try:
             query = sql.SQL("""
@@ -284,8 +284,6 @@ class PostgreSQLDatabase:
         try:
             self.cursor.execute(sql.SQL("SELECT column_name FROM information_schema.columns WHERE table_name = 'reviews_sentiments' ORDER BY ordinal_position;"))
             columns = [row[0] for row in self.cursor.fetchall()]
-            # columns = [desc[0] for desc in self.cursor.description]  # Get column names dynamically
-            # columns = ['review_id', 'story', 'acting', 'visuals', 'sounds', 'values', 'overall']
             update_assignments = sql.SQL(', ').join(
                 sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
                 for col in columns if col != 'review_id')  # Exclude primary key from updates
@@ -310,6 +308,7 @@ class PostgreSQLDatabase:
             query = "UPDATE reviews_raw SET to_process = 0 WHERE review_id = %s"
             self.cursor.execute(query, (review_id,))
             self.connection.commit()
+            logger.debug(f"Reseted indicator for review #{review_id}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
             logger.error(f"Failed resetting process indicator for review #{review_id}: {error}")

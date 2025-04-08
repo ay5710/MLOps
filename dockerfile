@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y \
 COPY ./setup/requirements.txt /app/setup/
 
 # Install Python dependencies directly (no virtual environment needed in Docker)
-RUN pip install --no-cache-dir -r ./setup/requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r ./setup/requirements.txt
 
 # Copy the rest of the application
 COPY . /app

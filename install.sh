@@ -27,8 +27,8 @@ sudo apt-get install -y python3 python3-pip python3-venv
 python3 -m pip install --upgrade pip
 
 echo "Creating a venv..."
-python3 -m venv virtualenv
-source virtualenv/bin/activate
+python3 -m venv .virtualenv
+source .virtualenv/bin/activate
 
 echo "Installing Python depencies..."
 python3 -m pip install --upgrade pip

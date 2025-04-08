@@ -1,5 +1,4 @@
 import pytest
-from src.utils.db import PostgreSQLDatabase
 from src.utils.s3 import s3
 
 

@@ -12,7 +12,7 @@ logger.info("Launching scheduler to run every exact hour")
 
 def run_main_py():
     try:
-        subprocess.run(["python", "main.py"], check=True) # Raise an exception if the subprocess returns a nonzero exit code
+        subprocess.run(["python", "main.py"], check=True)  # Raise an exception if the subprocess returns a nonzero exit code
         logger.info("Executed main.py")
     except subprocess.CalledProcessError as e:
         logger.error(f"Error executing main.py: {e}")

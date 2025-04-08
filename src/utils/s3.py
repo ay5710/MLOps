@@ -105,8 +105,8 @@ class s3:
                 backup = pd.read_csv(f"data/sample/{table_name}.csv")
                 logger.info(f"Loading sample data for {table_name}")
                 return backup
-            except:
-                logger.warning(f"No distant or local backup found for {table_name}")
+            except Exception as e:
+                logger.warning(f"No distant or local backup found for {table_name}: {e}")
 
         else:
             file_path = max(backup_files, key=s3.extract_timestamp)

@@ -5,13 +5,13 @@ This project tracks the reception of movies based on user reviews published on [
 There are 3 main components:
 - **Web scrapping** => with Selenium
 - **Aspect-based sentiment analysis** => with the openAI API to query gpt-4o-mini
-- **Dashboard** => with Streamlit?
+- **Dashboard** => with Streamlit
 
 The main script is run periodically by a scheduler, and:
-- Rescrap movie metadata every hour and check if new reviews have been published
-- Rescrap everything every 24 hours or when new reviews are detected, launch the sentiment analysis and save
+- Rescrap movie metadata every hour and check if new reviews have been published.
+- Rescrap everything every 24 hours or when new reviews are detected, launch the sentiment analysis and save.
 
-Data is stored in a PostgreSQL database and saved in S3 => *this may not work in Docker*
+Data is stored in a PostgreSQL database and saved in S3.
 
 ### Installation
 #### In the DataLab
@@ -30,22 +30,12 @@ Launche the installation script with `chmod +x ./install.sh && source ./install.
 
 The state of the scheduler can be checked with `pgrep -fl scheduler.py`.
 
-=> *Add a movie to track with `python -m src.utils.add_movie '<movie_id>'` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix)*
+=> *Movies can be added or removed with `python -m src.utils.manage_movies --add <movie_id_1> --remove <movie_id_2>` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix)*
 
 #### With Docker
 A `docker-compose.yml` is provided which runs both the project and the database. 
 
-An `.env` file is necessary with the following variables, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage):
-- DB_NAME=*<to be set>*
-- DB_USER=*<to be set>*
-- DB_PASSWORD=*<to be set>*
-- DB_HOST=db
-- OPENAI_API_KEY=*<to be set>*
-- AWS_ACCESS_KEY_ID=
-- AWS_SECRET_ACCESS_KEY=
-- AWS_SESSION_TOKEN=
-- AWS_S3_ENDPOINT=
-- AWS_DEFAULT_REGION=
+An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`)
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
@@ -69,28 +59,21 @@ With...
 - Total number of reviews + graph of their publication date
 - Average grade + graph of its evolution over time
 - For each sentiment + overall sentiment: average score + histogram
+- The possibility to add or remove movies
 - ...
 
 ### To do
-- Add a function to remove movies
-- Autocleaning of S3 directory => keep lonly the 5 last files for each table => lacks permissions?
-- Implement consistency checks for the results of scrapping and API calls
-- Offer the possibility to add new movies from the dashboard, preferably without too many reviews to reduce processing times
-- *Optionnal:* use [enlighten](https://python-enlighten.readthedocs.io/en/stable/index.html) for progress bars
-- *Optionnal:* switch from GPT to Gemini 
 - *Optionnal:* use ArgoCD
 - *Optionnal:* create an API
 
 ### Checklist
-- The project is well structured
 - The code is formatted properly => use Flake8
-- The code is documented
 - Logs are collected
-- A test procedure is available => select an old movie with 2-3 reviews to run the code on
-- A Docker container is provided with postgresql install
+- A test procedure is available
 
 ### Improvements
 Which could have been done but have not...
 - Use playwright for scrapping (more flexible than Selenium)
 - Parallelize by running 1 main script per movie => would have require to move the db to asynchronous
-- Implement (more) tests => but the log is already quite verbose
+- Implement (more) tests
+- Create different clients able to track different movies, with a logging interface to the dashboard

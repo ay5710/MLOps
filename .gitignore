@@ -177,4 +177,5 @@ cython_debug/
 .DS_Store
 .parquet
 .out
+.virtualenv/
 bin/

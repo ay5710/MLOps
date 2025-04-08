@@ -1,11 +1,8 @@
-import os
 import pandas as pd
-import s3fs
 import time
 import tqdm
 
 from datetime import datetime
-from dotenv import load_dotenv
 from src.analysis import GPT
 from src.scrapping import IMDb
 from src.utils.db import PostgreSQLDatabase
@@ -29,10 +26,10 @@ db.connect()
 
 for movie_id in set(movie[0] for movie in db.query_data('movies')):
     logger.info(f"Beginning scraping for movie #{movie_id}")
-    
+
     ###   Scrap movie metadata   ###
 
-    scrapper = IMDb()    
+    scrapper = IMDb()
     movie_scrap_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     movie_title, release_date = scrapper.get_movie(movie_id)
     total_reviews = scrapper.get_number_of_reviews(movie_id)
@@ -58,7 +55,7 @@ for movie_id in set(movie[0] for movie in db.query_data('movies')):
 
         last_scrapping = db.query_data("movies", condition=f"movie_id = '{(movie_id)}'")[0][4]
         time_since_scrapping = (datetime.now() - last_scrapping).seconds
-        
+
         prompt = "No review" if new_reviews == 0 else f"{new_reviews} new reviews"
         logger.info(f"{prompt} published in the last {(time_since_scrapping / 3600):.2F} hours")
 
@@ -153,7 +150,7 @@ else:
             db.reset_indicator(review_id)
         # Interrupt sentiment analysis if the script is about to have run for 1 hour
         if time.time() - begin_time > 58 * 60:
-            loger.warning("Sentiment analysis taking too long, aborting...")
+            logger.warning("Sentiment analysis taking too long, aborting...")
             break
 
 

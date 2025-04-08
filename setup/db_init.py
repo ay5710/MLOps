@@ -1,25 +1,19 @@
 import numpy as np
 import pandas as pd
-import re
 
-from datetime import datetime
 from src.utils.db import PostgreSQLDatabase
 from src.utils.logger import setup_logging, get_backend_logger
 from src.utils.s3 import s3
 
 
-# Start logging
 setup_logging()
 logger = get_backend_logger()
 logger.info("Initializing databases...")
 
 
-# Connect to database
+# Connect to database and S3
 db = PostgreSQLDatabase()
 db.connect()
-
-
-# Connect to S3
 s3 = s3()
 
 
