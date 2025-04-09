@@ -33,7 +33,7 @@ app/
 │       ├── logger.py
 │       ├── manage_movies.py
 │       └── s3.py
-├── tests/
+├── test/
 │       └── connection_test.py
 ├── main.py
 ├── scheduler.py</pre>
