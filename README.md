@@ -1,17 +1,17 @@
 # The IMDb Reviews Tracker
 This project tracks the reception of movies based on user reviews published on [IMDb](https://www.imdb.com). It was realised during the [Deployment of Data Science Projects](https://www.ensae.fr/courses/6052-mise-en-production-des-projets-de-data-science) course at ENSAE (see the [companion website](https://ensae-reproductibilite.github.io/website/)).
 
-### Implementation
+## 1. Implementation
 There are 3 main components:
-- **Web scrapping** => with Selenium
-- **Aspect-based sentiment analysis** => with the openAI API to query gpt-4o-mini
-- **Dashboard** => with Streamlit
+- **Web scrapping**
+- **Aspect-based sentiment analysis**
+- **Dashboard**
 
-The main script is run periodically by a scheduler, and:
-- Rescrap movie metadata every hour and check if new reviews have been published.
-- Rescrap everything every 24 hours or when new reviews are detected, launch the sentiment analysis and save.
+The main script is run periodically by a scheduler.
+- Every hour, it rescraps movie metadata and checks if new reviews have been published.
+- Every 24 hours or when new reviews are detected, it rescraps everything and launches the sentiment analysis for news or updated reviews.
 
-Data is stored in a PostgreSQL database and saved in s3.
+Data is stored in a PostgreSQL database and saved in s3. A sample with 2 movies is provided.
 
 Architecture:
 <pre>
@@ -29,10 +29,10 @@ app/
 │   ├── analysis.py
 │   ├── scrapping.py
 │   └── utils/
-│       ├── db.py => manages interactions with the database
+│       ├── db.py
 │       ├── logger.py
 │       ├── manage_movies.py
-│       └── s3.py => manages interactions with s3
+│       └── s3.py
 ├── tests/
 │       └── connection_test.py
 ├── main.py
@@ -40,28 +40,32 @@ app/
 
 ### Installation
 #### In the DataLab
-Launch a Postgresql service then create an `.env` file with the corresponding parameters:
+Launch a Postgresql service, then create an `.env` file with the corresponding parameters:
 - DB_NAME=
 - DB_USER=
 - DB_PASSWORD=
 - DB_HOST=
 
-Launche the installation script with `chmod +x ./install.sh && source ./install.sh`. This script:
+Launch the installation script with `chmod +x ./install.sh && source ./install.sh`. This script:
 1. Installs Chrome
 2. Installs Python and dependencies within a virtual environment
-3. Sets up the database
-4. Saves the openAI token
+3. Checks if credentials are present
+4. Sets up the database
 5. Launches the scheduler
 
 The state of the scheduler can be checked with `pgrep -fl scheduler.py`.
 
 #### With Docker
-A `docker-compose.yml` is provided which runs both the project and the database. 
+A `docker-compose.yml` is provided which runs the tracker, the database and the dashboard as distinct services.
 
-An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`)
+An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`).
 
 ### Manage movies
-They can be added or removed with `python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix).
+They can be added or removed with `python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix, e.g., `0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).
+
+## 2. Technical aspects
+
+### Scrapping
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
@@ -88,6 +92,13 @@ With...
 - The possibility to add or remove movies
 - ...
 
+## 3. Possible improvements
+Which could have been done but have not...
+- Use playwright for scrapping (more flexible than Selenium)
+- Parallelize by running 1 main script per movie => would have require to move the db to asynchronous
+- Implement (more) tests
+- Create different clients able to track different movies, with a logging interface to the dashboard
+
 ### To do
 - *Optionnal:* use ArgoCD
 - *Optionnal:* create an API
@@ -96,10 +107,3 @@ With...
 - The code is formatted properly => use Flake8
 - Logs are collected
 - A test procedure is available
-
-### Improvements
-Which could have been done but have not...
-- Use playwright for scrapping (more flexible than Selenium)
-- Parallelize by running 1 main script per movie => would have require to move the db to asynchronous
-- Implement (more) tests
-- Create different clients able to track different movies, with a logging interface to the dashboard
