@@ -66,6 +66,13 @@ They can be added or removed with `python -m src.utils.manage_movies --add '<mov
 ## 2. Technical aspects
 
 ### Scrapping
+In progress: parallelize by running 1 main script per movie
+- *Adapting main.py* => done
+- Rewrite the scheduler, while...
+- - Avoiding running too many scripts in parallel
+  - Manage script duration to avoid launching a script for a movie if one is still running (especially if a new movie with many reviews has been added)
+- Move backups to the scheduler
+- Have different logs per movie => need to create another log generator and pass the one to use as an argument to db and IMDb classes
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
@@ -95,7 +102,6 @@ With...
 ## 3. Possible improvements
 Which could have been done but have not...
 - Use playwright for scrapping (more flexible than Selenium)
-- Parallelize by running 1 main script per movie => would have require to move the db to asynchronous
 - Implement (more) tests
 - Create different clients able to track different movies, with a logging interface to the dashboard
 

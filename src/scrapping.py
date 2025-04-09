@@ -19,6 +19,15 @@ logger = get_backend_logger()
 
 class IMDb:
     def __init__(self):
+        self.temp_profile_dir = None
+        self.driver = None
+        self.wait = None
+
+
+    def __enter__(self):
+        """
+        Initialize the Chrome WebDriver with a temporary profile directory.
+        """
         self.temp_profile_dir = tempfile.mkdtemp()
         os.chmod(self.temp_profile_dir, 0o777)
         logger.debug(f"Chrome user-data-dir: {self.temp_profile_dir}")
@@ -34,7 +43,26 @@ class IMDb:
 
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 10)
-        logger.info("Launching browser")
+        logger.debug("Launching browser")
+        return self
+
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Clean up by closing the browser and removing the temporary profile directory.
+        """
+        if self.driver:
+            self.driver.quit()
+            logger.debug("Browser closed")
+        
+        if self.temp_profile_dir:
+            shutil.rmtree(self.temp_profile_dir, ignore_errors=True)
+            logger.debug(f"Temp directory ({self.temp_profile_dir}) cleaned up")
+        
+        if exc_type is not None:
+            logger.error(f"Exception occurred: {exc_type}, {exc_value}")
+        
+        return False  # Returning False to propagate any exception, if any occurred
 
 
     @staticmethod
@@ -93,7 +121,7 @@ class IMDb:
                 logger.info(f"Reviews: {total_reviews}")
                 return int(total_reviews)                            # Convert to integer
             else:
-                logger.info(f"Could not parse review count from text: '{reviews_text}'")
+                logger.warning(f"Could not parse review count from text: '{reviews_text}'")
                 return None
 
         except Exception as e:
@@ -226,7 +254,7 @@ class IMDb:
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load
-        logger.info(f"Getting exact votes for review #{review_id}")
+        logger.debug(f"Getting exact votes for review #{review_id}")
 
         # Extract votes
         try:
@@ -242,11 +270,3 @@ class IMDb:
         except Exception as e:
             logger.error(f"Failed to get exact votes for review {review_id}: {e}")
             return None
-
-
-    def close(self):
-        if hasattr(self, 'driver'):
-            self.driver.quit()
-            shutil.rmtree(self.temp_profile_dir, ignore_errors=True)
-            logger.info("Browser closed")
-            logger.debug(f"Temp directory ({self.temp_profile_dir}) cleaned up")

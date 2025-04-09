@@ -27,43 +27,29 @@ class PostgreSQLDatabase:
         self.cursor = None
 
 
-    def connect(self):
+    def __enter__(self):
         """
         Establish a connection to the PostgreSQL database
         """
         try:
             self.connection = psycopg.connect(**self.connection_params)
             self.cursor = self.connection.cursor()
-            logger.info(f"Successfully connected to {self.connection_params['host']}")
+            logger.debug(f"Successfully connected to {self.connection_params['host']}")
+            return self
         except (Exception, psycopg.Error) as error:
             logger.error(f"Failed connecting to {self.connection_params['host']}: {error}")
+            raise
 
 
-    def ping(self):
-        """
-        Pings the database to keep the connection alive or re-establish it if necessary.
-        """
-        try:
-            if self.connection is None or self.connection.closed:
-                logger.warning("Connection is closed or None, reconnecting...")
-                self.connect()
-            else:
-                with self.connection.cursor() as cur:
-                    cur.execute("SELECT 1")
-                    logger.debug("Pinging db")
-        except (Exception, psycopg.Error) as error:
-            logger.warning(f"Ping failed: {error}. Reconnecting...")
-            self.connect()
-
-
-    def close_connection(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         """
         Close database connection and cursor
         """
-        if self.connection:
+        if self.cursor:
             self.cursor.close()
+        if self.connection:
             self.connection.close()
-            logger.info("Database connection closed")
+        logger.debug("Database connection closed")
 
 
 ######################################
