@@ -19,8 +19,7 @@ parser.add_argument("--movie_id", required=True, type=str)
 args = parser.parse_args()
 movie_id = args.movie_id
 
-
-begin_time = time.time()
+start_time = time.time()
 
 
 ##################################
@@ -168,9 +167,6 @@ else:
             with PostgreSQLDatabase() as db:
                 db.update_sentiment_data(data)
                 db.reset_indicator(review_id)
-        # Interrupt sentiment analysis if the script is about to have run for 1 hour
-        if time.time() - begin_time > 58 * 60:
-            logger.warning("Sentiment analysis taking too long, aborting to avoid conflicts with the scheduler...")
-            break
 
-logger.info(f"Total execution time: {(time.time() - begin_time)/60:.2f} minutes")
+
+logger.info(f"Total execution time: {(time.time() - start_time)/60:.2f} minutes")

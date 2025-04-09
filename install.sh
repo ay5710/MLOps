@@ -20,6 +20,14 @@ google-chrome --version
 echo "Google Chrome has been installed successfully!"
 
 
+# Set time zone
+echo "Setting timezone to Europe/Paris..."
+sudo DEBIAN_FRONTEND=noninteractive apt install -y tzdata
+sudo ln -sf /usr/share/zoneinfo/Europe/Paris /etc/localtime
+echo "Verifying timezone using date:"
+date
+
+
 # Install Python and dependencies within a virtual environment
 echo "Installing Python..."
 sudo apt-get -y update
@@ -66,7 +74,7 @@ else
 fi
 
 
-# Creating the tables and restoring backup
+# Create the tables and restoring backup
 python -m setup.db_init
 
 

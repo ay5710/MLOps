@@ -6,6 +6,7 @@ WORKDIR /app
 
 # Install dependencies (combined into a single RUN to reduce layers)
 RUN apt-get update && apt-get install -y \
+    DEBIAN_FRONTEND=noninteractive tzdata \
     postgresql-client \
     curl \
     unzip \
@@ -15,6 +16,11 @@ RUN apt-get update && apt-get install -y \
  && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
  && apt-get update && apt-get install -y google-chrome-stable \
  && rm -rf /var/lib/apt/lists/*
+
+# Set timezone
+RUN ln -sf /usr/share/zoneinfo/Europe/Paris /etc/localtime \
+    && echo "Europe/Paris" > /etc/timezone
+RUN echo "Verifying timezone during build:" && date
 
 # Copy requirements file first (for better layer caching)
 COPY ./setup/requirements.txt /app/setup/

@@ -2,10 +2,11 @@
 This project tracks the reception of movies based on user reviews published on [IMDb](https://www.imdb.com). It was realised during the [Deployment of Data Science Projects](https://www.ensae.fr/courses/6052-mise-en-production-des-projets-de-data-science) course at ENSAE (see the [companion website](https://ensae-reproductibilite.github.io/website/)).
 
 ## 1. Implementation
-There are 3 main components:
+There are 4 main components:
 - **Web scrapping**
 - **Aspect-based sentiment analysis**
 - **Dashboard**
+- **User management**
 
 The main script is run periodically by a scheduler.
 - Every hour, it rescraps movie metadata and checks if new reviews have been published.
@@ -27,6 +28,7 @@ app/
 │   └── requirements.txt
 ├── src/
 │   ├── analysis.py
+│   ├── backup.py    
 │   ├── scrapping.py
 │   └── utils/
 │       ├── db.py
@@ -67,11 +69,11 @@ They can be added or removed with `python -m src.utils.manage_movies --add '<mov
 
 ### Scrapping
 In progress: parallelize by running 1 main script per movie
-- *Adapting main.py* => done
-- Rewrite the scheduler, while...
-- - Avoiding running too many scripts in parallel
-  - Manage script duration to avoid launching a script for a movie if one is still running (especially if a new movie with many reviews has been added)
-- Move backups to the scheduler
+- *Adapting main.py*
+- *Rewrite the scheduler, while...*
+- - *Avoiding running too many scripts in parallel*
+  - *Manage script duration to avoid launching a script for a movie if one is still running (especially if a new movie with many reviews has been added)*
+- *Move backups to the scheduler*
 - Have different logs per movie => need to create another log generator and pass the one to use as an argument to db and IMDb classes
 
 ### Sentiment analysis

@@ -1,3 +1,4 @@
+APScheduler
 arrow
 beautifulsoup4
 chromedriver-py

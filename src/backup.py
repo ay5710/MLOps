@@ -6,7 +6,7 @@ setup_logging()
 logger = get_backend_logger()
 logger.info("Backing up...")
 
-
+s3 = s3()
 
 # Save the tables to parquet
 for table in ['movies', 'reviews_raw', 'reviews_sentiments']:
@@ -14,7 +14,6 @@ for table in ['movies', 'reviews_raw', 'reviews_sentiments']:
         db.backup_table(table)
 
 # Upload the files to S3
-s3 = s3()
 for table in ['movies', 'reviews_raw', 'reviews_sentiments']:
     file_path = s3.get_latest_local_backup(table)
     if file_path is not None:
