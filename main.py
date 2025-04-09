@@ -14,15 +14,16 @@ setup_logging()
 logger = get_backend_logger()
 logger.info("Launching main script")
 
-begin_time = time.time()
-
 db = PostgreSQLDatabase()
 db.connect()
+
+begin_time = time.time()
 
 
 ##################################
 ###          SCRAPPING         ###
 ##################################
+
 
 for movie_id in set(movie[0] for movie in db.query_data('movies')):
     logger.info(f"Beginning scraping for movie #{movie_id}")
@@ -67,11 +68,12 @@ for movie_id in set(movie[0] for movie in db.query_data('movies')):
         reviews_to_scrap = total_reviews - old_total_reviews
         if reviews_to_scrap == 0:
             logger.info("No additional review to scrap")
+        else:
+            logger.info(f"{reviews_to_scrap} to scrap")
 
     ###   Scrap reviews   ###
 
     if new_movie == 1 or reviews_to_scrap > 0 or time_since_scrapping > 86400:
-        logger.info(f"{reviews_to_scrap} to scrap")
         reviews_df = scrapper.get_reviews(movie_id, total_reviews)
 
         # Get the text hidden behind spoiler markup
@@ -85,6 +87,7 @@ for movie_id in set(movie[0] for movie in db.query_data('movies')):
                 review_id = row["review_id"]
                 spoiler_text = scrapper.get_spoiler(review_id)  # Call the function to get the spoiler
                 reviews_df.at[index, "text"] = spoiler_text  # Replace 'text' with the spoiler
+                db.ping()  # Ping the db to avoid being disconnected
 
         # Check again for empty reviews
         empty_reviews = reviews_df[reviews_df["text"].isna() | reviews_df["text"].str.strip().eq("") |
@@ -105,6 +108,7 @@ for movie_id in set(movie[0] for movie in db.query_data('movies')):
             exact_upvotes, exact_downvotes = scrapper.get_votes(review_id)
             reviews_df.loc[index, 'upvotes'] = exact_upvotes
             reviews_df.loc[index, 'downvotes'] = exact_downvotes
+            db.ping()
 
         reviews_df['upvotes'] = reviews_df['upvotes'].astype(int)
         reviews_df['downvotes'] = reviews_df['downvotes'].astype(int)
@@ -137,6 +141,7 @@ for movie_id in set(movie[0] for movie in db.query_data('movies')):
 ###     SENTIMENT ANALYSIS     ###
 ##################################
 
+
 reviews_to_process = db.query_data('reviews_raw', condition=f"to_process = 1")
 
 if len(reviews_to_process) == 0:
@@ -160,7 +165,7 @@ else:
             db.reset_indicator(review_id)
         # Interrupt sentiment analysis if the script is about to have run for 1 hour
         if time.time() - begin_time > 58 * 60:
-            logger.warning("Sentiment analysis taking too long, aborting...")
+            logger.warning("Sentiment analysis taking too long, aborting to avoid conflicts with the scheduler...")
             break
 
 
@@ -186,3 +191,4 @@ s3.clean_backup_directory()
 
 
 db.close_connection()
+logger.info(f"Total execution time: {(time.time() - begin_time)/60:.2f} minutes")

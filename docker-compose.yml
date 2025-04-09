@@ -19,7 +19,7 @@ services:
       - PYTHONPATH=/app
     volumes:
       - ./tracker/logs:/app/logs
-    restart: no
+    restart: unless-stopped
     command: ["/bin/bash", "-c", "until pg_isready -h db -p 5432; do echo 'Waiting for database...'; sleep 5; done && python setup/db_init.py && python scheduler.py"]
     networks:
       - mlops-network
@@ -32,9 +32,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
     - ./db:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
-    restart: no
+    restart: unless-stopped
     networks:
       - mlops-network
 

@@ -42,7 +42,7 @@ class IMDb:
         full_id = str(raw_id)
         if len(full_id) < tot_lgt:
             full_id = full_id.zfill(tot_lgt)
-            logger.debug("Restoring leading zeros for {raw_id}")
+            logger.debug(f"Restoring leading zeros for {raw_id}")
         return full_id
 
 

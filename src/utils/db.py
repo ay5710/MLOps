@@ -39,6 +39,23 @@ class PostgreSQLDatabase:
             logger.error(f"Failed connecting to {self.connection_params['host']}: {error}")
 
 
+    def ping(self):
+        """
+        Pings the database to keep the connection alive or re-establish it if necessary.
+        """
+        try:
+            if self.connection is None or self.connection.closed:
+                logger.warning("Connection is closed or None, reconnecting...")
+                self.connect()
+            else:
+                with self.connection.cursor() as cur:
+                    cur.execute("SELECT 1")
+                    logger.debug("Pinging db")
+        except (Exception, psycopg.Error) as error:
+            logger.warning(f"Ping failed: {error}. Reconnecting...")
+            self.connect()
+
+
     def close_connection(self):
         """
         Close database connection and cursor

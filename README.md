@@ -11,7 +11,32 @@ The main script is run periodically by a scheduler, and:
 - Rescrap movie metadata every hour and check if new reviews have been published.
 - Rescrap everything every 24 hours or when new reviews are detected, launch the sentiment analysis and save.
 
-Data is stored in a PostgreSQL database and saved in S3.
+Data is stored in a PostgreSQL database and saved in s3.
+
+Architecture:
+<pre>
+app/
+├── data/
+│   ├── backup/
+│   └── sample/
+├── logs/
+├── notebooks/
+├── setup/
+│   ├── .env.template
+│   ├── db_init.py
+│   └── requirements.txt
+├── src/
+│   ├── analysis.py
+│   ├── scrapping.py
+│   └── utils/
+│       ├── db.py => manages interactions with the database
+│       ├── logger.py
+│       ├── manage_movies.py
+│       └── s3.py => manages interactions with s3
+├── tests/
+│       └── connection_test.py
+├── main.py
+├── scheduler.py</pre>
 
 ### Installation
 #### In the DataLab
@@ -30,12 +55,13 @@ Launche the installation script with `chmod +x ./install.sh && source ./install.
 
 The state of the scheduler can be checked with `pgrep -fl scheduler.py`.
 
-=> *Movies can be added or removed with `python -m src.utils.manage_movies --add <movie_id_1> --remove <movie_id_2>` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix)*
-
 #### With Docker
 A `docker-compose.yml` is provided which runs both the project and the database. 
 
 An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`)
+
+### Manage movies
+They can be added or removed with `python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix).
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:

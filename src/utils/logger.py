@@ -29,7 +29,7 @@ def setup_logging():
 
     # Backend Logger
     backend_logger = logging.getLogger('backend')
-    backend_logger.setLevel(logging.DEBUG)
+    backend_logger.setLevel(logging.INFO)
     backend_file_handler = RotatingFileHandler(
         BACKEND_LOG,
         mode='a',
