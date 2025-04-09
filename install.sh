@@ -5,16 +5,16 @@
 echo "Installing Chrome..."
 sudo apt install -y wget gnupg
 
-# Download Google's signing key using the newer method
+## Download Google's signing key using the newer method
 wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee /usr/share/keyrings/google-chrome.gpg > /dev/null
 
-# Add Chrome repository using the newer method with signed-by option
+## Add Chrome repository using the newer method with signed-by option
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
 
-# Update package lists with the new repository
+## Update package lists with the new repository
 sudo apt update
 
-# Install Google Chrome and verify installation
+## Install Chrome and verify installation
 sudo apt install -y google-chrome-stable
 google-chrome --version
 echo "Google Chrome has been installed successfully!"
@@ -35,16 +35,39 @@ python3 -m pip install --upgrade pip
 pip install -r ./setup/requirements.txt
 
 
+# Check the configuration
+echo "Checking the configuration..."
+
+## Is the .env file present?
+if [ ! -f .env ]; then
+  echo ".env file not found."
+  echo "Copying from setup/.env.template..."
+  cp setup/.env.template .env
+  echo "Install aborted. Set credentials and run the script again." >&2
+  exit 1
+fi
+
+## Are variables defined?
+REQUIRED_VARS=("DB_NAME" "DB_USER" "DB_PASSWORD" "DB_HOST" "OPENAI_API_KEY")
+MISSING=0
+
+for VAR in "${REQUIRED_VARS[@]}"; do
+  if ! grep -qE "^$VAR=[^[:space:]]+" .env 2>/dev/null; then
+    echo "Missing variable in .env: $VAR" >&2
+    MISSING=1
+  fi
+done
+
+if [ "$MISSING" -eq 1 ]; then
+  echo "Install aborted. Set credentials and run the script again." >&2
+  exit 1
+else
+  echo "All required environment variables are present. Proceeding..."
+fi
+
+
 # Creating the tables and restoring backup
 python -m setup.db_init
-
-
-# Get OpenAI token and save to the .env file
-echo "Please enter OpenAI token:"
-read -s TOKEN
-echo "Token received."
-echo "OPENAI_API_KEY=$TOKEN" >> .env
-echo "Token added to configuration file."
 
 
 # Launch the scheduler
