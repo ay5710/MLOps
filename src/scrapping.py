@@ -1,5 +1,8 @@
+import os
 import pandas as pd
 import re
+import shutil
+import tempfile
 import time
 
 from bs4 import BeautifulSoup
@@ -13,19 +16,40 @@ from src.utils.logger import get_backend_logger
 
 logger = get_backend_logger()
 
+
 class IMDb:
     def __init__(self):
+        self.temp_profile_dir = tempfile.mkdtemp()
+        os.chmod(self.temp_profile_dir, 0o777)
+        logger.debug(f"Chrome user-data-dir: {self.temp_profile_dir}")
+
         chrome_options = Options()
         chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36")
+        chrome_options.add_argument(f"--user-data-dir={self.temp_profile_dir}")
+
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 10)
         logger.info("Launching browser")
 
 
-    def get_movie(self, movie_id):
+    @staticmethod
+    def restore_leading_zeros(raw_id, tot_lgt):
+        full_id = str(raw_id)
+        if len(full_id) < tot_lgt:
+            full_id = full_id.zfill(tot_lgt)
+            logger.debug(f"Restoring leading zeros for {raw_id}")
+        return full_id
+
+
+    def get_movie(self, raw_movie_id):
         try:
+            movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
+
             # Load main page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
             logger.info("Scrapping metadata")
@@ -51,8 +75,10 @@ class IMDb:
             return None
 
 
-    def get_number_of_reviews(self, movie_id):
+    def get_number_of_reviews(self, raw_movie_id):
         try:
+            movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
+
             # Load review page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
 
@@ -75,11 +101,13 @@ class IMDb:
             return None
 
 
-    def get_reviews(self, movie_id, total_reviews):
+    def get_reviews(self, raw_movie_id, total_reviews):
+        movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
+
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
         logger.info("Scrapping reviews")
-        time.sleep(7)
+        time.sleep(10)
 
         # Click the button to display all reviews, using JavaScript to avoid interception issues
         if total_reviews > 25:
@@ -97,7 +125,7 @@ class IMDb:
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             logger.info("Scrolling down...")
-            time.sleep(1)  # Give time for new reviews to load
+            time.sleep(2)  # Give time for new reviews to load
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
                 break  # Stop when no new content loads
@@ -171,7 +199,9 @@ class IMDb:
         return reviews_df
 
 
-    def get_spoiler(self, review_id):
+    def get_spoiler(self, raw_review_id):
+        review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
+
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load
@@ -190,7 +220,9 @@ class IMDb:
             return None
 
 
-    def get_votes(self, review_id):
+    def get_votes(self, raw_review_id):
+        review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
+
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load
@@ -215,4 +247,6 @@ class IMDb:
     def close(self):
         if hasattr(self, 'driver'):
             self.driver.quit()
-            logger.info("Closing browser")
+            shutil.rmtree(self.temp_profile_dir, ignore_errors=True)
+            logger.info("Browser closed")
+            logger.debug(f"Temp directory ({self.temp_profile_dir}) cleaned up")

@@ -1,18 +1,19 @@
 import numpy as np
 import pandas as pd
-import re
 
-from datetime import datetime
 from src.utils.db import PostgreSQLDatabase
+from src.utils.logger import setup_logging, get_backend_logger
 from src.utils.s3 import s3
 
 
-# Connect to database
+setup_logging()
+logger = get_backend_logger()
+logger.info("Initializing databases...")
+
+
+# Connect to database and S3
 db = PostgreSQLDatabase()
 db.connect()
-
-
-# Connect to S3
 s3 = s3()
 
 
@@ -67,7 +68,7 @@ for table in ['movies', 'reviews_raw', 'reviews_sentiments']:
             # Verify no NaNs remain
             non_none_nulls = sum(1 for x in backup_df['rating'] if pd.isna(x) and x is not None)
             if non_none_nulls > 0:
-                print(f"[ERROR] {non_none_nulls} NaNs found in reviews_raw, backup not restored")
+                logger.error(f"{non_none_nulls} NaNs found in reviews_raw, backup not restored")
                 continue
 
         if table == 'reviews_sentiments':
@@ -77,7 +78,7 @@ for table in ['movies', 'reviews_raw', 'reviews_sentiments']:
             # Verify no NaNs remain
             non_none_nulls = sum(1 for row in backup_df.values.flatten() if pd.isna(row) and row is not None)
             if non_none_nulls > 0:
-                print(f"[ERROR] {non_none_nulls} NaNs found in reviews_sentiments, backup not restored")
+                logger.error(f"{non_none_nulls} NaNs found in reviews_sentiments, backup not restored")
                 continue
 
         # Create tuples for database insertion, ensuring proper handling of None values

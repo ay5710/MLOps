@@ -1,36 +1,71 @@
-This project was realised during the [Deployment of Data Science Projects](https://www.ensae.fr/courses/6052-mise-en-production-des-projets-de-data-science) course at ENSAE (see the [companion website](https://ensae-reproductibilite.github.io/website/)). It aims to track the reception of movies based on user reviews published on [IMDb](https://www.imdb.com).
+# The IMDb Reviews Tracker
+This project tracks the reception of movies based on user reviews published on [IMDb](https://www.imdb.com). It was realised during the [Deployment of Data Science Projects](https://www.ensae.fr/courses/6052-mise-en-production-des-projets-de-data-science) course at ENSAE (see the [companion website](https://ensae-reproductibilite.github.io/website/)).
 
-### Implementation
-3 main components:
-- **scrapping** => with Selenium
-- **aspect-based sentiment analysis** => with the openAI API to query gpt-4o-mini
-- **dashboard** => with Streamlit?
+## 1. Implementation
+There are 3 main components:
+- **Web scrapping**
+- **Aspect-based sentiment analysis**
+- **Dashboard**
 
-Orchestration by a scheduler running a main script periodically:
-- Rescrap movie metadata every hour and check if new reviews have been published
-- Rescrap everything every 24 hours or when new reviews are detected, launch the sentiment analysis and save
+The main script is run periodically by a scheduler.
+- Every hour, it rescraps movie metadata and checks if new reviews have been published.
+- Every 24 hours or when new reviews are detected, it rescraps everything and launches the sentiment analysis for news or updated reviews.
 
-Data is stored in a PostgreSQL database and saved in S3 => *this may not work in Docker*
+Data is stored in a PostgreSQL database and saved in s3. A sample with 2 movies is provided.
+
+Architecture:
+<pre>
+app/
+├── data/
+│   ├── backup/
+│   └── sample/
+├── logs/
+├── notebooks/
+├── setup/
+│   ├── .env.template
+│   ├── db_init.py
+│   └── requirements.txt
+├── src/
+│   ├── analysis.py
+│   ├── scrapping.py
+│   └── utils/
+│       ├── db.py
+│       ├── logger.py
+│       ├── manage_movies.py
+│       └── s3.py
+├── test/
+│       └── connection_test.py
+├── main.py
+├── scheduler.py</pre>
 
 ### Installation
-Chrome: `chmod +x ./setup/chrome.sh && ./setup/chrome.sh`
-
-Python packages: `pip install -r ./setup/requirements.txt`
-
-Databases: 
-In the Datalab, launch a separate Postgresql service then update the `.env` with its parameters:
+#### In the DataLab
+Launch a Postgresql service, then create an `.env` file with the corresponding parameters:
 - DB_NAME=
 - DB_USER=
 - DB_PASSWORD=
 - DB_HOST=
-In Docker, the Postgresql is launched automatically and the parameters are set accordingly-hopefully...
-Then, run `python -m setup.db_init`
 
-OpenAI: set the OPENAI_API_KEY in the `.env` file.
+Launch the installation script with `chmod +x ./install.sh && source ./install.sh`. This script:
+1. Installs Chrome
+2. Installs Python and dependencies within a virtual environment
+3. Checks if credentials are present
+4. Sets up the database
+5. Launches the scheduler
 
-Launch the scheduler with `python scheduler.py &` (and check if it's running with `pgrep -fl scheduler.py`)
+The state of the scheduler can be checked with `pgrep -fl scheduler.py`.
 
-Add a movie to track with `python -m src.utils.add_movie <movie_id>` (where `<movie_id>` must be retrieved manually from IMDb)
+#### With Docker
+A `docker-compose.yml` is provided which runs the tracker, the database and the dashboard as distinct services.
+
+An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`).
+
+### Manage movies
+They can be added or removed with `python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix, e.g., `0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).
+
+## 2. Technical aspects
+
+### Scrapping
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
@@ -54,29 +89,21 @@ With...
 - Total number of reviews + graph of their publication date
 - Average grade + graph of its evolution over time
 - For each sentiment + overall sentiment: average score + histogram
+- The possibility to add or remove movies
 - ...
 
+## 3. Possible improvements
+Which could have been done but have not...
+- Use playwright for scrapping (more flexible than Selenium)
+- Parallelize by running 1 main script per movie => would have require to move the db to asynchronous
+- Implement (more) tests
+- Create different clients able to track different movies, with a logging interface to the dashboard
+
 ### To do
-- Add a function to remove movies
-- Implement external S3 access for Docker
-- Autocleaning of S3 directory => keep lonly the 5 last files for each table
-- Implement consistency checks for the results of scrapping and API calls
-- Offer the possibility to add new movies from the dashboard, preferably without too many reviews to reduce processing times
-- *Optionnal:* use [enlighten](https://python-enlighten.readthedocs.io/en/stable/index.html) for progress bars
-- *Optionnal:* switch from GPT to Gemini 
 - *Optionnal:* use ArgoCD
 - *Optionnal:* create an API
 
 ### Checklist
-- The project is well structured
 - The code is formatted properly => use Flake8
-- The code is documented
 - Logs are collected
-- A test procedure is available => select an old movie with 2-3 reviews to run the code on
-- A Docker container is provided with postgresql install
-
-### Improvements
-Which could have been done but have not...
-- Use playwright for scrapping (more flexible than Selenium)
-- Parallelize by running 1 main script per movie => would have require to move the db to asynchronous
-- Implement (more) tests => but the log is already quite verbose
+- A test procedure is available

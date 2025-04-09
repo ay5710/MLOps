@@ -8,6 +8,7 @@ from src.utils.logger import get_backend_logger
 
 logger = get_backend_logger()
 
+
 class GPT:
     def __init__(self):
         load_dotenv()
@@ -19,7 +20,7 @@ class GPT:
 
         prompt = f"""
 Instructions:
-Below is a movie review that I want you to analyze. 
+Below is a movie review that I want you to analyze.
 For each of the following aspect, you must determine if it is mentioned in the review, and if it is, what is the corresponding sentiment on the following scale: *very negative*, *negative*, *neutral* (including mixed or contradictory sentiments), *positive*, *very positive*.
 - *Storytelling* (including characters and their development, narrative progression, plot twists, screenplay, dialogues, overall pacing)
 - *Acting performance* (including vocal, musical, danse, or stunt work if applicable)
@@ -41,11 +42,20 @@ Now the review:
                 messages = [{"role": "user", "content": prompt}]
             )
         except Exception as e:
-            logger.info(f"API call failed for review: {e}")
+            logger.info(f"API call failed for review #{review[1]}: {e}")
             return None
 
         # Extract list from API answer
-        answer = ast.literal_eval(completion.choices[0].message.content)
+        try:
+            raw_answer = completion.choices[0].message.content
+            answer = ast.literal_eval(raw_answer)
+        except Exception:
+            try:
+                clean_answer = raw_answer.replace("‘", "'").replace("’", "'").replace("“", '"').replace("”", '"')
+                answer = ast.literal_eval(clean_answer)
+            except Exception as e2:
+                logger.warning(f"Failed to parse GPT answer for review #{review[1]}: {e2}")
+                return None
 
         # Convert categories into integers
         sentiment_mapping = {
