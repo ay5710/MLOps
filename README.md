@@ -8,9 +8,11 @@ There are 4 main components:
 - **Dashboard**
 - **User management**
 
-The main script is run periodically by a scheduler.
-- Every hour, it rescraps movie metadata and checks if new reviews have been published.
-- Every 24 hours or when new reviews are detected, it rescraps everything and launches the sentiment analysis for news or updated reviews.
+Data collection is orchestrated by a scheduler which ensures that...
+- Movie metadata is rescraped every hour to check if new reviews have been published.
+- Movie reviews are rescraped entirely every 24 hours or when new reviews have been detected.
+- No more than 5 movies are scrapped concurrently to avoid overloading the system.
+- The database is backed up every hour.
 
 Data is stored in a PostgreSQL database and saved in s3. A sample with 2 movies is provided.
 
@@ -74,7 +76,7 @@ In progress: parallelize by running 1 main script per movie
 - - *Avoiding running too many scripts in parallel*
   - *Manage script duration to avoid launching a script for a movie if one is still running (especially if a new movie with many reviews has been added)*
 - *Move backups to the scheduler*
-- Have different logs per movie => need to create another log generator and pass the one to use as an argument to db and IMDb classes
+- Have different logs per movie => need to create another log generator and pass the one to use as an argument to `PostgreSQLDatabase` and `IMDb` classes
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:

@@ -54,7 +54,7 @@ def process_movies(movies_id):
 def backup_function():
     """Runs the backup script."""
     try:
-        subprocess.run("python src/backup.py", shell=True, check=True)
+        subprocess.run("python -m src/backup.py", shell=True, check=True)
         logger.info("Backup completed successfully.")
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed running backup: {e}")
