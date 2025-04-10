@@ -70,7 +70,7 @@ class IMDb:
         full_id = str(raw_id)
         if len(full_id) < tot_lgt:
             full_id = full_id.zfill(tot_lgt)
-            logger.debug(f"Restoring leading zeros for {raw_id}")
+            logger.debug(f"Restoring leading zeros for movie / review {raw_id}")
         return full_id
 
 
@@ -80,26 +80,26 @@ class IMDb:
 
             # Load main page
             self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
-            logger.info("Scrapping metadata")
+            logger.info(f"{movie_id} - Scrapping metadata")
 
             # Wait for and extract title
             title_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//span[@data-testid="hero__primary-text"]'))
             )
             movie_title = title_element.text.strip()
-            logger.info(f"Movie title: {movie_title}")
+            logger.info(f"{movie_id} - Movie title: {movie_title}")
 
             # Wait for and extract release date
             release_date_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//li[@data-testid="title-details-releasedate"]//a[@class="ipc-metadata-list-item__list-content-item ipc-metadata-list-item__list-content-item--link"]'))
             )
             release_date = release_date_element.text.split(" (")[0].strip()
-            logger.info(f"Release date: {release_date}")
+            logger.info(f"{movie_id} - Release date: {release_date}")
 
             return movie_title, release_date
 
         except Exception as e:
-            logger.error(f"Failed to get metadata: {e}")
+            logger.error(f"{movie_id} - Failed to get metadata: {e}")
             return None
 
 
@@ -118,14 +118,14 @@ class IMDb:
             if "reviews" in reviews_text:
                 total_reviews = reviews_text.split(" reviews")[0]    # Remove the unit
                 total_reviews = total_reviews.replace(",", "")       # Remove the comma for numbers >999
-                logger.info(f"Reviews: {total_reviews}")
+                logger.info(f"{movie_id} - Reviews: {total_reviews}")
                 return int(total_reviews)                            # Convert to integer
             else:
-                logger.warning(f"Could not parse review count from text: '{reviews_text}'")
+                logger.warning(f"{movie_id} - Could not parse review count from text: '{reviews_text}'")
                 return None
 
         except Exception as e:
-            logger.error(f"Failed to get number of reviews: {e}")
+            logger.error(f"{movie_id} - Failed to get number of reviews: {e}")
             return None
 
 
@@ -134,7 +134,7 @@ class IMDb:
 
         # Load reviews page
         self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
-        logger.info("Scrapping reviews")
+        logger.info(f"{movie_id} - Scrapping reviews")
         time.sleep(10)
 
         # Click the button to display all reviews, using JavaScript to avoid interception issues
@@ -144,15 +144,15 @@ class IMDb:
                     EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "All")]]'))
                 )
                 self.driver.execute_script("arguments[0].click();", all_button)
-                logger.info("Attempting to display all reviews")
+                logger.info(f"{movie_id} - Attempting to display all reviews")
             except Exception as e:
-                logger.warning(f"Button for displaying all reviews not found or not clickable: {e}")
+                logger.warning(f"{movie_id} - Button for displaying all reviews not found or not clickable: {e}")
 
         # Scroll down to compensate for lazy loading
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            logger.debug("Scrolling down...")
+            logger.debug(f"{movie_id} - Scrolling down...")
             time.sleep(2)  # Give time for new reviews to load
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
@@ -218,17 +218,18 @@ class IMDb:
                     "last_update": datetime.now().strftime("%Y%m%d_%H%M%S")
                 })
             except Exception as e:
-                logger.error(f"Failed to extract data for a review: {e}")
+                logger.error(f"{movie_id} - Failed to extract data for a review: {e}")
                 continue
 
         # Create a dataframe from the collected data
         reviews_df = pd.DataFrame(data)
-        logger.info(f"Extracted {len(reviews_df)} reviews")
+        logger.info(f"{movie_id} - Extracted {len(reviews_df)} reviews")
         return reviews_df
 
 
-    def get_spoiler(self, raw_review_id):
+    def get_spoiler(self, raw_review_id, raw_movie_id):
         review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
+        movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
 
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
@@ -244,17 +245,18 @@ class IMDb:
             text = text_element.text.strip()
             return text
         except Exception as e:
-            logger.error(f"Failed to unspoil review {review_id}: {e}")
+            logger.error(f"{movie_id} - Failed to unspoil review {review_id}: {e}")
             return None
 
 
-    def get_votes(self, raw_review_id):
+    def get_votes(self, raw_review_id, raw_movie_id):
         review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
+        movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
 
         # Load review page
         self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
         time.sleep(2)  # Allow page to load
-        logger.debug(f"Getting exact votes for review #{review_id}")
+        logger.debug(f"{movie_id} - Getting exact votes for review #{review_id}")
 
         # Extract votes
         try:
@@ -268,5 +270,5 @@ class IMDb:
             return upvotes, downvotes
 
         except Exception as e:
-            logger.error(f"Failed to get exact votes for review {review_id}: {e}")
+            logger.error(f"{movie_id} - Failed to get exact votes for review {review_id}: {e}")
             return None

@@ -15,7 +15,7 @@ class GPT:
         openai.api_key = os.getenv('OPENAI_API_KEY')
         self.client = OpenAI()
 
-    def sentiment(self, review):
+    def sentiment(self, review, movie_id):
         text = review[3] + f"\n\n" + review[4]
 
         prompt = f"""
@@ -42,7 +42,7 @@ Now the review:
                 messages = [{"role": "user", "content": prompt}]
             )
         except Exception as e:
-            logger.info(f"API call failed for review #{review[1]}: {e}")
+            logger.info(f"{movie_id} - API call failed for review #{review[1]}: {e}")
             return None
 
         # Extract list from API answer
@@ -54,7 +54,7 @@ Now the review:
                 clean_answer = raw_answer.replace("‘", "'").replace("’", "'").replace("“", '"').replace("”", '"')
                 answer = ast.literal_eval(clean_answer)
             except Exception as e2:
-                logger.warning(f"Failed to parse GPT answer for review #{review[1]}: {e2}")
+                logger.warning(f"{movie_id} - Failed to parse GPT answer for review #{review[1]}: {e2}")
                 return None
 
         # Convert categories into integers

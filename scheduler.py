@@ -27,11 +27,11 @@ def run_movie_script(movie_id):
 
     try:
         command = f"python main.py --movie_id '{movie_id}'"
-        logger.debug(f"Launching main script for movie #{movie_id}...")
+        logger.info(f"{movie_id} - Launching main script...")
         subprocess.run(command, shell=True, check=True)
-        logger.debug(f"Main script finished for movie #{movie_id}")
+        logger.debug(f"{movie_id} - Main script finished")
     except subprocess.CalledProcessError as e:
-        logger.error(f"Failed launching main script for movie {movie_id}: {e}")
+        logger.error(f"{movie_id} - Failed launching main script: {e}")
     finally:
         with processing_lock:
             active_processes.remove(movie_id)

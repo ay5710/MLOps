@@ -70,13 +70,10 @@ They can be added or removed with `python -m src.utils.manage_movies --add '<mov
 ## 2. Technical aspects
 
 ### Scrapping
-In progress: parallelize by running 1 main script per movie
-- *Adapting main.py*
-- *Rewrite the scheduler, while...*
-- - *Avoiding running too many scripts in parallel*
-  - *Manage script duration to avoid launching a script for a movie if one is still running (especially if a new movie with many reviews has been added)*
-- *Move backups to the scheduler*
-- Have different logs per movie => need to create another log generator and pass the one to use as an argument to `PostgreSQLDatabase` and `IMDb` classes
+Difficulties to overcome
+- Display all reviews while only 25 are loaded by defaut
+- Access text hidden behind `<spoiler>` markup
+- Get exact upvotes and downvotes, which are rounded above 999
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
