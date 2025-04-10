@@ -73,7 +73,7 @@ else:
     if reviews_to_scrap == 0:
         logger.info(f"{movie_id} - No additional review to scrap")
     else:
-        logger.info(f"{movie_id} - {reviews_to_scrap} to scrap")
+        logger.info(f"{movie_id} - {reviews_to_scrap} reviews to scrap")
 
 ###   Scrap reviews   ###
 
@@ -88,7 +88,7 @@ if new_movie == 1 or reviews_to_scrap > 0 or time_since_scrapping > 86400:
             logger.warning(f"{movie_id} - Missing text for {len(empty_reviews)} reviews")
             logger.info(f"{movie_id} - Getting text behind spoiler markups")
 
-            for index, row in tqdm.tqdm(empty_reviews.iterrows(), total=len(empty_reviews), desc="Processing empty reviews"):
+            for index, row in tqdm.tqdm(empty_reviews.iterrows(), total=len(empty_reviews), desc=f"{movie_id} - Processing empty reviews", miniters=10):
                 review_id = row["review_id"]
                 spoiler_text = scrapper.get_spoiler(review_id, movie_id)  # Call the function to get the spoiler
                 reviews_df.at[index, "text"] = spoiler_text  # Replace 'text' with the spoiler
@@ -155,7 +155,7 @@ else:
     logger.info(f"{movie_id} - {prompt} to analyze, starting API calls...")
 
     analyzer = GPT()
-    for review in tqdm.tqdm(reviews_to_process, desc="Analyzing reviews sentiment", unit="review"):
+    for review in tqdm.tqdm(reviews_to_process, desc=f"{movie_id} - Analyzing reviews sentiment", unit="review", miniters=10):
         review_id = review[1]
         GPT_results = analyzer.sentiment(review, movie_id)
         if GPT_results is not None:

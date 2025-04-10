@@ -168,9 +168,9 @@ class PostgreSQLDatabase:
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
             if movie_id:
-                logger.error(f"{movie_id} - Failed inserting data: {error}")
+                logger.error(f"{movie_id} - Failed inserting data: {error} ({str(error)})")
             else:
-                logger.error(f"Failed inserting data: {error}")
+                logger.error(f"Failed inserting data: {error} ({str(error)})")
 
 
     def remove_data(self, table_name, condition_column, condition_value, movie_id=None):
@@ -214,22 +214,22 @@ class PostgreSQLDatabase:
             if columns == '*':
                 select_query = sql.SQL("SELECT * FROM {}").format(
                     sql.Identifier(table_name))
-                if condition:
-                    select_query = sql.SQL("SELECT * FROM {} WHERE {}").format(
-                        sql.Identifier(table_name),
-                        sql.SQL(condition))
             else:
                 select_query = sql.SQL("SELECT {} FROM {}").format(
                     sql.SQL(', ').join(sql.Identifier(col) for col in columns),
                     sql.Identifier(table_name))
-                if condition:
-                    select_query = sql.SQL("SELECT {} FROM {} WHERE {}").format(
-                        sql.SQL(', ').join(sql.Identifier(col) for col in columns),
-                        sql.Identifier(table_name),
-                        sql.SQL(condition))
+
+            # Append condition if provided
+            if condition:
+                select_query = sql.SQL("{} WHERE {}").format(select_query, sql.SQL(condition))
+
+            query_string = select_query.as_string(self.connection)
+            logger.debug(f"Executing SQL: {query_string}")
+        
             self.cursor.execute(select_query)
             results = self.cursor.fetchall()
             return results
+            
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
             if movie_id:

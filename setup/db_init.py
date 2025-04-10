@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from src.scrapping import IMDb
 from src.utils.db import PostgreSQLDatabase
 from src.utils.logger import setup_logging, get_backend_logger
 from src.utils.s3 import s3
@@ -25,14 +26,14 @@ for table in ['reviews_sentiments', 'reviews_raw', 'movies']:
 # Create tables
 with PostgreSQLDatabase() as db:
     db.create_table('movies', {
-        'movie_id': 'VARCHAR(10) PRIMARY KEY',
+        'movie_id': 'VARCHAR(9) PRIMARY KEY',
         'title': 'VARCHAR(250)',
         'release_date': 'DATE',
         'nb_reviews': 'INTEGER',
         'scrapping_timestamp': 'TIMESTAMP'})
 
     db.create_table('reviews_raw', {
-        'movie_id': 'VARCHAR(10) REFERENCES movies(movie_id) ON DELETE CASCADE',
+        'movie_id': 'VARCHAR(9) REFERENCES movies(movie_id) ON DELETE CASCADE',
         'review_id': 'VARCHAR(10) PRIMARY KEY',
         'author': 'VARCHAR(150)',
         'title': 'VARCHAR(500)',

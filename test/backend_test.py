@@ -11,7 +11,7 @@ LOG_TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S,%f"
 ANSI_ESCAPE = re.compile(r'\x1b\[[0-9;]*m')
 
 
-def test_main_script(movie_id='0097874'):
+def test_main_script(movie_id='tt0097874'):
     """Tests that main.py runs successfully and produces no errors in its log entries after the test starts, for a given movie."""
     test_start_time = datetime.now()
     test_start_time_str = test_start_time.strftime(LOG_TIMESTAMP_FORMAT)

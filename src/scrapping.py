@@ -65,21 +65,10 @@ class IMDb:
         return False  # Returning False to propagate any exception, if any occurred
 
 
-    @staticmethod
-    def restore_leading_zeros(raw_id, tot_lgt):
-        full_id = str(raw_id)
-        if len(full_id) < tot_lgt:
-            full_id = full_id.zfill(tot_lgt)
-            logger.debug(f"Restoring leading zeros for movie / review {raw_id}")
-        return full_id
-
-
-    def get_movie(self, raw_movie_id):
+    def get_movie(self, movie_id):
         try:
-            movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-
             # Load main page
-            self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
+            self.driver.get(f"https://www.imdb.com/title/{movie_id}")
             logger.info(f"{movie_id} - Scrapping metadata")
 
             # Wait for and extract title
@@ -103,12 +92,10 @@ class IMDb:
             return None
 
 
-    def get_number_of_reviews(self, raw_movie_id):
+    def get_number_of_reviews(self, movie_id):
         try:
-            movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-
             # Load review page
-            self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
+            self.driver.get(f"https://www.imdb.com/title/{movie_id}/reviews")
 
             # Wait for, extract and parse the number of reviews
             reviews_element = self.wait.until(
@@ -129,11 +116,9 @@ class IMDb:
             return None
 
 
-    def get_reviews(self, raw_movie_id, total_reviews):
-        movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-
+    def get_reviews(self, movie_id, total_reviews):
         # Load reviews page
-        self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
+        self.driver.get(f"https://www.imdb.com/title/{movie_id}/reviews")
         logger.info(f"{movie_id} - Scrapping reviews")
         time.sleep(10)
 
@@ -169,7 +154,7 @@ class IMDb:
                 permalink_tag = review.find("a", class_="ipc-link ipc-link--base", attrs={"data-testid": "permalink-link"})
                 review_id = None
                 if permalink_tag:
-                    identifier_match = re.search(r"/rw(\d+)", permalink_tag["href"])
+                    identifier_match = re.search(r"/(rw\d+)", permalink_tag["href"])
                     if identifier_match:
                         review_id = identifier_match.group(1)
 
@@ -227,12 +212,9 @@ class IMDb:
         return reviews_df
 
 
-    def get_spoiler(self, raw_review_id, raw_movie_id):
-        review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
-        movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-
+    def get_spoiler(self, review_id, movie_id):
         # Load review page
-        self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
+        self.driver.get(f"https://www.imdb.com/review/{review_id}/")
         time.sleep(2)  # Allow page to load
 
         try:
@@ -249,12 +231,9 @@ class IMDb:
             return None
 
 
-    def get_votes(self, raw_review_id, raw_movie_id):
-        review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
-        movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-
+    def get_votes(self, review_id, movie_id):
         # Load review page
-        self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
+        self.driver.get(f"https://www.imdb.com/review/{review_id}/")
         time.sleep(2)  # Allow page to load
         logger.debug(f"{movie_id} - Getting exact votes for review #{review_id}")
 
