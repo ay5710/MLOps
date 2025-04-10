@@ -152,7 +152,7 @@ class IMDb:
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            logger.info("Scrolling down...")
+            logger.debug("Scrolling down...")
             time.sleep(2)  # Give time for new reviews to load
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:

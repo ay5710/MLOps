@@ -37,24 +37,23 @@ def run_movie_script(movie_id):
             active_processes.remove(movie_id)
 
 
+def process_movie(movie_id):
+    """Wrapper to call run_movie_script for multiprocessing."""
+    run_movie_script(movie_id)
+
+
 def process_movies(movies_id):
     """Manages concurrent execution of movie scripts."""
-    semaphore = multiprocessing.Semaphore(max_concurrent_scripts)
-
-    def worker(movie_id):
-        with semaphore:
-            run_movie_script(movie_id)
-
     logger.info(f"Processing {len(movies_id)} movies with {max_concurrent_scripts} concurrent workers.")
     with multiprocessing.Pool(processes=max_concurrent_scripts) as pool:
-        pool.map(worker, list(movies_id))
+        pool.map(process_movie, list(movies_id))
     logger.info("All movie processing completed.")
 
 
 def backup_function():
     """Runs the backup script."""
     try:
-        subprocess.run("python -m src/backup.py", shell=True, check=True)
+        subprocess.run("python -m src.backup", shell=True, check=True)
         logger.info("Backup completed successfully.")
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed running backup: {e}")
