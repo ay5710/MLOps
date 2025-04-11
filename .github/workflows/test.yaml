@@ -43,4 +43,4 @@ jobs:
 
       - name: Run tests with pytest
         run: |
-          pytest test/connection_test.py
+          pytest test/backup_test.py
