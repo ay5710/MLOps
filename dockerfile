@@ -4,11 +4,12 @@ FROM python:3.12-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    POETRY_VERSION=1.8.2
+    POETRY_VERSION=1.8.2 \
+    DEBIAN_FRONTEND=noninteractive
 
 # System dependencies
 RUN apt-get update && apt-get install -y \
-    DEBIAN_FRONTEND=noninteractive tzdata \
+    tzdata \
     curl \
     wget \
     gnupg \
