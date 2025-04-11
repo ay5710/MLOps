@@ -271,7 +271,7 @@ class PostgreSQLDatabase:
             query = """
             INSERT INTO reviews_raw (movie_id, review_id, author, title, text, rating, date, upvotes, downvotes, last_update, to_process)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (review_id) DO UPDATE
+            ON CONFLICT (author) DO UPDATE
             SET
                 title = EXCLUDED.title,
                 text = EXCLUDED.text,
@@ -293,22 +293,16 @@ class PostgreSQLDatabase:
 
 
     def update_sentiment_data(self, data, movie_id):
-        """
-        Insert data into a specified table, updating existing rows if review_id conflicts
-
-        :param table_name: Name of the table
-        :param data: List of tuples containing row data
-        """
         try:
             self.cursor.execute(sql.SQL("SELECT column_name FROM information_schema.columns WHERE table_name = 'reviews_sentiments' ORDER BY ordinal_position;"))
             columns = [row[0] for row in self.cursor.fetchall()]
             update_assignments = sql.SQL(', ').join(
                 sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
-                for col in columns if col != 'review_id')  # Exclude primary key from updates
+                for col in columns if col != 'author')  # Exclude primary key from updates
 
             insert_query = sql.SQL("""
                 INSERT INTO {} ({}) VALUES ({})
-                ON CONFLICT (review_id) DO UPDATE SET {}
+                ON CONFLICT (author) DO UPDATE SET {}
             """).format(
                 sql.Identifier('reviews_sentiments'),
                 sql.SQL(', ').join(map(sql.Identifier, columns)),
@@ -321,12 +315,12 @@ class PostgreSQLDatabase:
             logger.error(f"{movie_id} - Failed updating sentiment data: {error}")
 
 
-    def reset_indicator(self, review_id, movie_id):
+    def reset_indicator(self, author, movie_id):
         try:
-            query = "UPDATE reviews_raw SET to_process = 0 WHERE review_id = %s"
-            self.cursor.execute(query, (review_id,))
+            query = "UPDATE reviews_raw SET to_process = 0 WHERE author = %s"
+            self.cursor.execute(query, (author,))
             self.connection.commit()
-            logger.debug(f"{movie_id} - Reseted indicator for review #{review_id}")
+            logger.debug(f"{movie_id} - Reseted indicator for review by {author}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            logger.error(f"{movie_id} - Failed resetting process indicator for review #{review_id}: {error}")
+            logger.error(f"{movie_id} - Failed resetting process indicator for review by {author}: {error}")

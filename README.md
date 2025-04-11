@@ -8,11 +8,7 @@ There are 4 main components:
 - **Dashboard**
 - **User management**
 
-Data collection is orchestrated by a scheduler which ensures that...
-- Movie metadata is rescraped every hour to check if new reviews have been published.
-- Movie reviews are rescraped entirely every 24 hours or when new reviews have been detected.
-- No more than 5 movies are scrapped concurrently to avoid overloading the system.
-- The database is backed up every hour.
+Data collection is orchestrated by a scheduler.
 
 Data is stored in a PostgreSQL database and saved in s3. A sample with 2 movies is provided.
 
@@ -70,10 +66,24 @@ They can be added or removed with `poetry run python -m src.utils.manage_movies 
 ## 2. Technical aspects
 
 ### Scrapping
-Difficulties to overcome
-- Display all reviews while only 25 are loaded by defaut
-- Access text hidden behind `<spoiler>` markup
-- Get exact upvotes and downvotes, which are rounded above 999
+Data must be retrieved from 3 different pages on the IMDB website: 
+- main page of the movie for the metadata, including the number of published reviews
+- main page of reviews, where only the 25 more popular reviews are displayed by default, where the actual reviews are sometimes hidden behind `<poiler>`markup, and where upvotes and downvotes are rounded above 999
+- individual pages of reviews, where exact votes appear
+
+Made it necessary to interact with the webpages:
+- Display all reviews on the main reviews page => it turned out that the button for displaying all reviews stops at the closest multiple of 25, then another button must be clicked for the remaining reviews
+- Access text hidden behind `<spoiler>` markup => it turned out more reliable to do on the individual pages of reviews, although it is slower
+
+Scrapping proceeds as follows:
+- Every hour, scrap the main page to retrieve the metadata
+- If new reviews has been published, the movie have just been added to the db, or the last full scrapping is > 24h old, scrap the reviews main page
+- If spoiler markups or rounded votes are present, scrap the corresponding individual review pages
+- Update the tables, while indicating if reviews are new or have been edited so they can be analyzed
+
+A scheduler launches a script per-movie every hour, while ensuring that no more than 5 movies are scrapped concurrently to avoid overloading the system, and that the database is backed up every hour.
+
+This process is not perfectly reliable, sometimes a few more reviews are extracted than should be present. Behavior of the IMDb website seems somewhat erratic?
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:

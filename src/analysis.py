@@ -42,7 +42,7 @@ Now the review:
                 messages = [{"role": "user", "content": prompt}]
             )
         except Exception as e:
-            logger.info(f"{movie_id} - API call failed for review {review[1]}: {e}")
+            logger.info(f"{movie_id} - API call failed for review by {review[2]}: {e}")
             return None
 
         # Extract list from API answer
@@ -53,10 +53,14 @@ Now the review:
             try:
                 clean_answer = raw_answer.replace("‘", "'").replace("’", "'").replace("“", '"').replace("”", '"')
                 answer = ast.literal_eval(clean_answer)
-            except Exception as e2:
-                logger.error(f"{movie_id} - Failed to parse GPT answer for review {review[1]}: {e2}")
-                logger.error(f"{movie_id} - GPT answer: {raw_answer}")
-                return None
+            except Exception:
+                try:
+                    clean_answer = raw_answer.replace("```python", "").replace("```", "")
+                    answer = ast.literal_eval(clean_answer)
+                except Exception:
+                    logger.error(f"{movie_id} - Failed to parse GPT answer for review by {review[2]}")
+                    logger.error(f"{movie_id} - GPT answer: {raw_answer}")
+                    return None
 
         # Convert categories into integers
         sentiment_mapping = {
@@ -79,7 +83,7 @@ Now the review:
                 if sentiment in sentiment_mapping:
                     mapped_values[i] = sentiment_mapping[sentiment]
         except Exception as e:
-            logger.error(f"{movie_id} - Failed to map aspect-based sentiments for review {review[1]}: {e}")
+            logger.error(f"{movie_id} - Failed to map aspect-based sentiments for review by {review[2]}: {e}")
             return None
 
         # Map overall sentiment
@@ -88,7 +92,7 @@ Now the review:
             if sentiment in sentiment_mapping:
                 mapped_values[5] = sentiment_mapping[sentiment]
         except Exception as e:
-            logger.error(f"{movie_id} - Failed to map overall sentiment for review {review[1]}: {e}")
+            logger.error(f"{movie_id} - Failed to map overall sentiment for review by {review[2]}: {e}")
             return None
 
         return mapped_values

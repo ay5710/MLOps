@@ -34,8 +34,8 @@ with PostgreSQLDatabase() as db:
 
     db.create_table('reviews_raw', {
         'movie_id': 'VARCHAR(9) REFERENCES movies(movie_id) ON DELETE CASCADE',
-        'review_id': 'VARCHAR(10) PRIMARY KEY',
-        'author': 'VARCHAR(150)',
+        'review_id': 'VARCHAR(10)',
+        'author': 'VARCHAR(150) PRIMARY KEY',
         'title': 'VARCHAR(500)',
         'text': 'TEXT',
         'rating': 'INTEGER',
@@ -46,7 +46,8 @@ with PostgreSQLDatabase() as db:
         'to_process': 'INTEGER'})
 
     db.create_table('reviews_sentiments', {
-        'review_id': 'VARCHAR(10) PRIMARY KEY REFERENCES reviews_raw(review_id) ON DELETE CASCADE',
+        'review_id': 'VARCHAR(10)',
+        'author': 'VARCHAR(150) PRIMARY KEY REFERENCES reviews_raw(author) ON DELETE CASCADE',
         'story': 'INTEGER',
         'acting': 'INTEGER',
         'visuals': 'INTEGER',

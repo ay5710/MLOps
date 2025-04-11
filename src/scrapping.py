@@ -122,28 +122,39 @@ class IMDb:
         logger.info(f"{movie_id} - Scrapping reviews")
         time.sleep(10)
 
-        # Click the button to display all reviews, using JavaScript to avoid interception issues
         if total_reviews > 25:
+            # Click the button to display all reviews, using JavaScript to avoid interception issues
             try:
                 all_button = self.wait.until(
                     EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "All")]]'))
                 )
                 self.driver.execute_script("arguments[0].click();", all_button)
-                logger.info(f"{movie_id} - Attempting to display all reviews")
+                logger.info(f"{movie_id} - Clicking the button to display all reviews")
             except Exception as e:
                 logger.warning(f"{movie_id} - Button for displaying all reviews not found or not clickable: {e}")
 
-        # Scroll down to compensate for lazy loading
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
-        while True:
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            logger.debug(f"{movie_id} - Scrolling down...")
-            time.sleep(2)  # Give time for new reviews to load
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break  # Stop when no new content loads
-            last_height = new_height
+            # Scroll down to compensate for lazy loading
+            last_height = self.driver.execute_script("return document.body.scrollHeight")
+            while True:
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                logger.debug(f"{movie_id} - Scrolling down...")
+                time.sleep(0.5)  # Give time for new reviews to load
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    break  # Stop when no new content loads
+                last_height = new_height
 
+            # Click the button to display remaining reviews
+            try:
+                all_button = self.wait.until(
+                    EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "more")]]'))
+                )
+                self.driver.execute_script("arguments[0].click();", all_button)
+                logger.info(f"{movie_id} - Clicking the button to display last reviews")
+                time.sleep(2)  # Give time for last reviews to load
+            except Exception as e:
+                logger.warning(f"{movie_id} - Button for displaying last reviews not found or not clickable: {e}")
+        
         # Loop through each review and extract information
         soup = BeautifulSoup(self.driver.page_source, "html.parser")
         reviews = soup.find_all("article", class_="user-review-item")
@@ -157,8 +168,6 @@ class IMDb:
                     identifier_match = re.search(r"/(rw\d+)", permalink_tag["href"])
                     if identifier_match:
                         review_id = identifier_match.group(1)
-                        if len(review_id) < 10:
-                            logger.error(f"{movie_id} - Invalid id for review {review_id}")
 
                 # 2. Extract the review date
                 date_tag = review.find("li", class_="ipc-inline-list__item review-date")

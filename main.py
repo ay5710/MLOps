@@ -91,7 +91,7 @@ if new_movie == 1 or reviews_to_scrap > 0 or time_since_scrapping > 86400:
             for index, row in tqdm.tqdm(empty_reviews.iterrows(), total=len(empty_reviews), desc=f"{movie_id} - Processing empty reviews", miniters=10):
                 review_id = row["review_id"]
                 spoiler_text = scrapper.get_spoiler(review_id, movie_id)  # Call the function to get the spoiler
-                reviews_df.at[index, "text"] = spoiler_text  # Replace 'text' with the spoiler
+                reviews_df.at[index, "text"] = spoiler_text               # Replace 'text' with the spoiler
 
         # Check again for empty reviews
         empty_reviews = reviews_df[reviews_df["text"].isna() | reviews_df["text"].str.strip().eq("") |
@@ -157,12 +157,13 @@ else:
     analyzer = GPT()
     for review in tqdm.tqdm(reviews_to_process, desc=f"{movie_id} - Analyzing reviews sentiment", unit="review", miniters=10):
         review_id = review[1]
+        author = review[2]
         GPT_results = analyzer.sentiment(review, movie_id)
         if GPT_results is not None:
-            data = [(review_id, *GPT_results)]
+            data = [(review_id, author, *GPT_results)]
             with PostgreSQLDatabase() as db:
                 db.update_sentiment_data(data, movie_id)
-                db.reset_indicator(review_id, movie_id)
+                db.reset_indicator(author, movie_id)
 
 
 logger.info(f"{movie_id} - Total execution time: {(time.time() - start_time)/60:.2f} minutes")
