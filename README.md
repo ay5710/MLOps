@@ -83,7 +83,7 @@ Scrapping proceeds as follows:
 
 A scheduler launches a script per-movie every hour, while ensuring that no more than 5 movies are scrapped concurrently to avoid overloading the system, and that the database is backed up every hour.
 
-This process is not perfectly reliable, sometimes a few more reviews are extracted than should be present. Behavior of the IMDb website seems somewhat erratic?
+For some movies, this process yields small discrepancies between the number of reviews declared on the main page and the effectively scrapped from the reviews page. Cursory investigation yielded no explanation for this. It could be that in certain conditions the review page fails to load all reviews? A fix would then be to click on the button to set a different reviews order (e.g., chronological instead of by upvotes).
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
@@ -110,11 +110,12 @@ With...
 - The possibility to add or remove movies
 - ...
 
+Create different clients able to track different movies, with a logging interface to the dashboard
+
 ## 3. Possible improvements
 Which could have been done but have not...
 - Use playwright for scrapping (more flexible than Selenium)
-- Implement (more) tests
-- Create different clients able to track different movies, with a logging interface to the dashboard
+- Implement (more) tests; but not access to the db in GitHub so can't be run from there, as part of workflows
 
 ### To do
 - *Optionnal:* use ArgoCD

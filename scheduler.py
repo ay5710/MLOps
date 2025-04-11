@@ -44,10 +44,10 @@ def process_movie(movie_id):
 
 def process_movies(movies_id):
     """Manages concurrent execution of movie scripts."""
-    logger.info(f"Processing {len(movies_id)} movies with {max_concurrent_scripts} concurrent workers.")
+    logger.info(f"Processing {len(movies_id)} movies with {max_concurrent_scripts} concurrent workers")
     with multiprocessing.Pool(processes=max_concurrent_scripts) as pool:
         pool.map(process_movie, list(movies_id))
-    logger.info("All movie processing completed.")
+    logger.info("All movie processing completed")
 
 
 def backup_function():
@@ -69,7 +69,7 @@ def schedule_tasks():
             if movies_id:
                 process_movies(movies_id)
             else:
-                logger.warning("No movies found in the database to process.")
+                logger.warning("No movies found in the database to process")
 
     # Schedule movie processing to run at the top of every hour (0th minute)
     scheduler.add_job(scheduled_movie_processing, CronTrigger(minute=0))

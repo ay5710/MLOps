@@ -50,11 +50,14 @@ Now the review:
             raw_answer = completion.choices[0].message.content
             answer = ast.literal_eval(raw_answer)
         except Exception:
+            # GPT may stray from its intended behavior in at least 2 ways:
             try:
+                # Replace fancy quotes signs
                 clean_answer = raw_answer.replace("‘", "'").replace("’", "'").replace("“", '"').replace("”", '"')
                 answer = ast.literal_eval(clean_answer)
             except Exception:
                 try:
+                    # Remove python markup
                     clean_answer = raw_answer.replace("```python", "").replace("```", "")
                     answer = ast.literal_eval(clean_answer)
                 except Exception:

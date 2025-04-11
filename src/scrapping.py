@@ -138,7 +138,7 @@ class IMDb:
             while True:
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 logger.debug(f"{movie_id} - Scrolling down...")
-                time.sleep(0.5)  # Give time for new reviews to load
+                time.sleep(2)  # Give time for new reviews to load
                 new_height = self.driver.execute_script("return document.body.scrollHeight")
                 if new_height == last_height:
                     break  # Stop when no new content loads
@@ -151,9 +151,9 @@ class IMDb:
                 )
                 self.driver.execute_script("arguments[0].click();", all_button)
                 logger.info(f"{movie_id} - Clicking the button to display last reviews")
-                time.sleep(2)  # Give time for last reviews to load
-            except Exception as e:
-                logger.warning(f"{movie_id} - Button for displaying last reviews not found or not clickable: {e}")
+                time.sleep(5)  # Give time for last reviews to load
+            except Exception:
+                logger.warning(f"{movie_id} - Button for displaying last reviews not found or not clickable")
         
         # Loop through each review and extract information
         soup = BeautifulSoup(self.driver.page_source, "html.parser")
