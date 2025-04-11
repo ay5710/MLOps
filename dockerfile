@@ -4,7 +4,7 @@ FROM python:3.12-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    POETRY_VERSION=1.8.2 \
+    POETRY_VERSION=2.1.2 \
     DEBIAN_FRONTEND=noninteractive
 
 # System dependencies
