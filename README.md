@@ -52,7 +52,7 @@ Launch a Postgresql service, then create an `.env` file with the corresponding p
 
 Launch the installation script with `chmod +x ./install.sh && source ./install.sh`. This script:
 1. Installs Chrome
-2. Installs Python and dependencies within a virtual environment
+2. Installs Python and dependencies with Poetry
 3. Checks if credentials are present
 4. Sets up the database
 5. Launches the scheduler
@@ -65,7 +65,7 @@ A `docker-compose.yml` is provided which runs the tracker, the database and the 
 An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`).
 
 ### Manage movies
-They can be added or removed with `python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix, e.g., `0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).
+They can be added or removed with `poetry run python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb, e.g., `tt0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).
 
 ## 2. Technical aspects
 

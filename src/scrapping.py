@@ -157,6 +157,8 @@ class IMDb:
                     identifier_match = re.search(r"/(rw\d+)", permalink_tag["href"])
                     if identifier_match:
                         review_id = identifier_match.group(1)
+                        if len(review_id) < 10:
+                            logger.error(f"{movie_id} - Invalid id for review {review_id}")
 
                 # 2. Extract the review date
                 date_tag = review.find("li", class_="ipc-inline-list__item review-date")

@@ -42,7 +42,7 @@ Now the review:
                 messages = [{"role": "user", "content": prompt}]
             )
         except Exception as e:
-            logger.info(f"{movie_id} - API call failed for review #{review[1]}: {e}")
+            logger.info(f"{movie_id} - API call failed for review {review[1]}: {e}")
             return None
 
         # Extract list from API answer
@@ -54,7 +54,8 @@ Now the review:
                 clean_answer = raw_answer.replace("‘", "'").replace("’", "'").replace("“", '"').replace("”", '"')
                 answer = ast.literal_eval(clean_answer)
             except Exception as e2:
-                logger.warning(f"{movie_id} - Failed to parse GPT answer for review #{review[1]}: {e2}")
+                logger.error(f"{movie_id} - Failed to parse GPT answer for review {review[1]}: {e2}")
+                logger.error(f"{movie_id} - GPT answer: {raw_answer}")
                 return None
 
         # Convert categories into integers
@@ -73,13 +74,21 @@ Now the review:
         mapped_values = [None] * 6
 
         # Map aspect-based sentiments
-        for i, (label, _, sentiment) in enumerate(answer[:5]):
-            if sentiment in sentiment_mapping:
-                mapped_values[i] = sentiment_mapping[sentiment]
+        try:
+            for i, (label, _, sentiment) in enumerate(answer[:5]):
+                if sentiment in sentiment_mapping:
+                    mapped_values[i] = sentiment_mapping[sentiment]
+        except Exception as e:
+            logger.error(f"{movie_id} - Failed to map aspect-based sentiments for review {review[1]}: {e}")
+            return None
 
         # Map overall sentiment
-        label, sentiment = answer[5]
-        if sentiment in sentiment_mapping:
-            mapped_values[5] = sentiment_mapping[sentiment]
+        try:
+            label, sentiment = answer[5]
+            if sentiment in sentiment_mapping:
+                mapped_values[5] = sentiment_mapping[sentiment]
+        except Exception as e:
+            logger.error(f"{movie_id} - Failed to map overall sentiment for review {review[1]}: {e}")
+            return None
 
         return mapped_values
