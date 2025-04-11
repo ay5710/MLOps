@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from src.scrapping import IMDb
 from src.utils.db import PostgreSQLDatabase
 from src.utils.logger import setup_logging, get_backend_logger
 from src.utils.s3 import s3
@@ -12,31 +13,29 @@ logger.info("Initializing databases...")
 
 
 # Connect to database and S3
-db = PostgreSQLDatabase()
-db.connect()
 s3 = s3()
 
 
 # Drop existing tables for a clean start (in reverse order of dependency)
 for table in ['reviews_sentiments', 'reviews_raw', 'movies']:
-    if db.table_exists(table):
-        db.drop_table(table)
+    with PostgreSQLDatabase() as db:
+        if db.table_exists(table):
+            db.drop_table(table)
 
 
 # Create tables
-db.create_table(
-    'movies', {
-        'movie_id': 'VARCHAR(10) PRIMARY KEY',
+with PostgreSQLDatabase() as db:
+    db.create_table('movies', {
+        'movie_id': 'VARCHAR(9) PRIMARY KEY',
         'title': 'VARCHAR(250)',
         'release_date': 'DATE',
         'nb_reviews': 'INTEGER',
         'scrapping_timestamp': 'TIMESTAMP'})
 
-db.create_table(
-    'reviews_raw', {
-        'movie_id': 'VARCHAR(10) REFERENCES movies(movie_id) ON DELETE CASCADE',
-        'review_id': 'VARCHAR(10) PRIMARY KEY',
-        'author': 'VARCHAR(150)',
+    db.create_table('reviews_raw', {
+        'movie_id': 'VARCHAR(9) REFERENCES movies(movie_id) ON DELETE CASCADE',
+        'review_id': 'VARCHAR(10)',
+        'author': 'VARCHAR(150) PRIMARY KEY',
         'title': 'VARCHAR(500)',
         'text': 'TEXT',
         'rating': 'INTEGER',
@@ -46,9 +45,9 @@ db.create_table(
         'last_update': 'TIMESTAMP',
         'to_process': 'INTEGER'})
 
-db.create_table(
-    'reviews_sentiments', {
-        'review_id': 'VARCHAR(10) PRIMARY KEY REFERENCES reviews_raw(review_id) ON DELETE CASCADE',
+    db.create_table('reviews_sentiments', {
+        'review_id': 'VARCHAR(10)',
+        'author': 'VARCHAR(150) PRIMARY KEY REFERENCES reviews_raw(author) ON DELETE CASCADE',
         'story': 'INTEGER',
         'acting': 'INTEGER',
         'visuals': 'INTEGER',
@@ -88,7 +87,5 @@ for table in ['movies', 'reviews_raw', 'reviews_sentiments']:
             for row in backup_df.itertuples(index=False, name=None)
         ]
 
-        db.insert_data(table, backup_data)
-
-
-db.close_connection()
+        with PostgreSQLDatabase() as db:
+            db.insert_data(table, backup_data)

@@ -2,14 +2,13 @@
 This project tracks the reception of movies based on user reviews published on [IMDb](https://www.imdb.com). It was realised during the [Deployment of Data Science Projects](https://www.ensae.fr/courses/6052-mise-en-production-des-projets-de-data-science) course at ENSAE (see the [companion website](https://ensae-reproductibilite.github.io/website/)).
 
 ## 1. Implementation
-There are 3 main components:
+There are 4 main components:
 - **Web scrapping**
 - **Aspect-based sentiment analysis**
 - **Dashboard**
+- **User management**
 
-The main script is run periodically by a scheduler.
-- Every hour, it rescraps movie metadata and checks if new reviews have been published.
-- Every 24 hours or when new reviews are detected, it rescraps everything and launches the sentiment analysis for news or updated reviews.
+Data collection is orchestrated by a scheduler.
 
 Data is stored in a PostgreSQL database and saved in s3. A sample with 2 movies is provided.
 
@@ -27,6 +26,7 @@ app/
 │   └── requirements.txt
 ├── src/
 │   ├── analysis.py
+│   ├── backup.py    
 │   ├── scrapping.py
 │   └── utils/
 │       ├── db.py
@@ -48,7 +48,7 @@ Launch a Postgresql service, then create an `.env` file with the corresponding p
 
 Launch the installation script with `chmod +x ./install.sh && source ./install.sh`. This script:
 1. Installs Chrome
-2. Installs Python and dependencies within a virtual environment
+2. Installs Python and dependencies with Poetry
 3. Checks if credentials are present
 4. Sets up the database
 5. Launches the scheduler
@@ -61,11 +61,29 @@ A `docker-compose.yml` is provided which runs the tracker, the database and the 
 An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`).
 
 ### Manage movies
-They can be added or removed with `python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb and stripped from the `tt` prefix, e.g., `0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).
+They can be added or removed with `poetry run python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb, e.g., `tt0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).
 
 ## 2. Technical aspects
 
 ### Scrapping
+Data must be retrieved from 3 different pages on the IMDB website: 
+- main page of the movie for the metadata, including the number of published reviews
+- main page of reviews, where only the 25 more popular reviews are displayed by default, where the actual reviews are sometimes hidden behind `<poiler>`markup, and where upvotes and downvotes are rounded above 999
+- individual pages of reviews, where exact votes appear
+
+Made it necessary to interact with the webpages:
+- Display all reviews on the main reviews page => it turned out that the button for displaying all reviews stops at the closest multiple of 25, then another button must be clicked for the remaining reviews
+- Access text hidden behind `<spoiler>` markup => it turned out more reliable to do on the individual pages of reviews, although it is slower
+
+Scrapping proceeds as follows:
+- Every hour, scrap the main page to retrieve the metadata
+- If new reviews has been published, the movie have just been added to the db, or the last full scrapping is > 24h old, scrap the reviews main page
+- If spoiler markups or rounded votes are present, scrap the corresponding individual review pages
+- Update the tables, while indicating if reviews are new or have been edited so they can be analyzed
+
+A scheduler launches a script per-movie every hour, while ensuring that no more than 5 movies are scrapped concurrently to avoid overloading the system, and that the database is backed up every hour.
+
+For some movies, this process yields small discrepancies between the number of reviews declared on the main page and the effectively scrapped from the reviews page. Cursory investigation yielded no explanation for this. It could be that in certain conditions the review page fails to load all reviews? A fix would then be to click on the button to set a different reviews order (e.g., chronological instead of by upvotes).
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
@@ -92,12 +110,12 @@ With...
 - The possibility to add or remove movies
 - ...
 
+Create different clients able to track different movies, with a logging interface to the dashboard
+
 ## 3. Possible improvements
 Which could have been done but have not...
 - Use playwright for scrapping (more flexible than Selenium)
-- Parallelize by running 1 main script per movie => would have require to move the db to asynchronous
-- Implement (more) tests
-- Create different clients able to track different movies, with a logging interface to the dashboard
+- Implement (more) tests; but not access to the db in GitHub so can't be run from there, as part of workflows
 
 ### To do
 - *Optionnal:* use ArgoCD

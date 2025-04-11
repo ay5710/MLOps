@@ -20,19 +20,24 @@ google-chrome --version
 echo "Google Chrome has been installed successfully!"
 
 
-# Install Python and dependencies within a virtual environment
-echo "Installing Python..."
+# Set time zone
+echo "Setting timezone to Europe/Paris..."
+sudo DEBIAN_FRONTEND=noninteractive apt install -y tzdata
+sudo ln -sf /usr/share/zoneinfo/Europe/Paris /etc/localtime
+echo "Verifying timezone using date:"
+date
+
+
+# Install Python and dependencies with Poetry
+echo "Installing Python and Poetry..."
 sudo apt-get -y update
-sudo apt-get install -y python3 python3-pip python3-venv
-python3 -m pip install --upgrade pip
+sudo apt-get install -y python3 python3-pip curl
 
-echo "Creating a venv..."
-python3 -m venv .virtualenv
-source .virtualenv/bin/activate
+curl -sSL https://install.python-poetry.org | python3 -
+export PATH="$HOME/.local/bin:$PATH"
 
-echo "Installing Python depencies..."
-python3 -m pip install --upgrade pip
-pip install -r ./setup/requirements.txt
+echo "Installing dependencies via Poetry..."
+poetry install
 
 
 # Check the configuration
@@ -48,25 +53,22 @@ if [ ! -f .env ]; then
 fi
 
 ## Are variables defined?
-REQUIRED_VARS=("DB_NAME" "DB_USER" "DB_PASSWORD" "DB_HOST" "OPENAI_API_KEY")
-MISSING=0
-
+REQUIRED_VARS=("DB_NAME" "DB_USER" "DB_PASSWORD" "DB_HOST")
 for VAR in "${REQUIRED_VARS[@]}"; do
   if ! grep -qE "^$VAR=[^[:space:]]+" .env 2>/dev/null; then
     echo "Missing variable in .env: $VAR" >&2
-    MISSING=1
+    echo "Install aborted. Set credentials and run the script again." >&2
+    exit 1
   fi
 done
 
-if [ "$MISSING" -eq 1 ]; then
-  echo "Install aborted. Set credentials and run the script again." >&2
-  exit 1
-else
-  echo "All required environment variables are present. Proceeding..."
+if ! grep -qE "^OPENAI_API_KEY=[^[:space:]]+" .env 2>/dev/null; then
+  echo "Missing OpenAI API key in .env" >&2
+  echo "Install proceeding. Sentiment analysis won't run." >&2
 fi
 
 
-# Creating the tables and restoring backup
+# Create the tables and restoring backup
 python -m setup.db_init
 
 

@@ -15,7 +15,7 @@ class GPT:
         openai.api_key = os.getenv('OPENAI_API_KEY')
         self.client = OpenAI()
 
-    def sentiment(self, review):
+    def sentiment(self, review, movie_id):
         text = review[3] + f"\n\n" + review[4]
 
         prompt = f"""
@@ -42,7 +42,7 @@ Now the review:
                 messages = [{"role": "user", "content": prompt}]
             )
         except Exception as e:
-            logger.info(f"API call failed for review #{review[1]}: {e}")
+            logger.info(f"{movie_id} - API call failed for review by {review[2]}: {e}")
             return None
 
         # Extract list from API answer
@@ -50,12 +50,20 @@ Now the review:
             raw_answer = completion.choices[0].message.content
             answer = ast.literal_eval(raw_answer)
         except Exception:
+            # GPT may stray from its intended behavior in at least 2 ways:
             try:
+                # Replace fancy quotes signs
                 clean_answer = raw_answer.replace("‘", "'").replace("’", "'").replace("“", '"').replace("”", '"')
                 answer = ast.literal_eval(clean_answer)
-            except Exception as e2:
-                logger.warning(f"Failed to parse GPT answer for review #{review[1]}: {e2}")
-                return None
+            except Exception:
+                try:
+                    # Remove python markup
+                    clean_answer = raw_answer.replace("```python", "").replace("```", "")
+                    answer = ast.literal_eval(clean_answer)
+                except Exception:
+                    logger.error(f"{movie_id} - Failed to parse GPT answer for review by {review[2]}")
+                    logger.error(f"{movie_id} - GPT answer: {raw_answer}")
+                    return None
 
         # Convert categories into integers
         sentiment_mapping = {
@@ -73,13 +81,21 @@ Now the review:
         mapped_values = [None] * 6
 
         # Map aspect-based sentiments
-        for i, (label, _, sentiment) in enumerate(answer[:5]):
-            if sentiment in sentiment_mapping:
-                mapped_values[i] = sentiment_mapping[sentiment]
+        try:
+            for i, (label, _, sentiment) in enumerate(answer[:5]):
+                if sentiment in sentiment_mapping:
+                    mapped_values[i] = sentiment_mapping[sentiment]
+        except Exception as e:
+            logger.error(f"{movie_id} - Failed to map aspect-based sentiments for review by {review[2]}: {e}")
+            return None
 
         # Map overall sentiment
-        label, sentiment = answer[5]
-        if sentiment in sentiment_mapping:
-            mapped_values[5] = sentiment_mapping[sentiment]
+        try:
+            label, sentiment = answer[5]
+            if sentiment in sentiment_mapping:
+                mapped_values[5] = sentiment_mapping[sentiment]
+        except Exception as e:
+            logger.error(f"{movie_id} - Failed to map overall sentiment for review by {review[2]}: {e}")
+            return None
 
         return mapped_values

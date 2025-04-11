@@ -19,6 +19,15 @@ logger = get_backend_logger()
 
 class IMDb:
     def __init__(self):
+        self.temp_profile_dir = None
+        self.driver = None
+        self.wait = None
+
+
+    def __enter__(self):
+        """
+        Initialize the Chrome WebDriver with a temporary profile directory.
+        """
         self.temp_profile_dir = tempfile.mkdtemp()
         os.chmod(self.temp_profile_dir, 0o777)
         logger.debug(f"Chrome user-data-dir: {self.temp_profile_dir}")
@@ -34,53 +43,59 @@ class IMDb:
 
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 10)
-        logger.info("Launching browser")
+        logger.debug("Launching browser")
+        return self
 
 
-    @staticmethod
-    def restore_leading_zeros(raw_id, tot_lgt):
-        full_id = str(raw_id)
-        if len(full_id) < tot_lgt:
-            full_id = full_id.zfill(tot_lgt)
-            logger.debug(f"Restoring leading zeros for {raw_id}")
-        return full_id
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Clean up by closing the browser and removing the temporary profile directory.
+        """
+        if self.driver:
+            self.driver.quit()
+            logger.debug("Browser closed")
+        
+        if self.temp_profile_dir:
+            shutil.rmtree(self.temp_profile_dir, ignore_errors=True)
+            logger.debug(f"Temp directory ({self.temp_profile_dir}) cleaned up")
+        
+        if exc_type is not None:
+            logger.error(f"Exception occurred: {exc_type}, {exc_value}")
+        
+        return False  # Returning False to propagate any exception, if any occurred
 
 
-    def get_movie(self, raw_movie_id):
+    def get_movie(self, movie_id):
         try:
-            movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-
             # Load main page
-            self.driver.get(f"https://www.imdb.com/title/tt{movie_id}")
-            logger.info("Scrapping metadata")
+            self.driver.get(f"https://www.imdb.com/title/{movie_id}")
+            logger.info(f"{movie_id} - Scrapping metadata")
 
             # Wait for and extract title
             title_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//span[@data-testid="hero__primary-text"]'))
             )
             movie_title = title_element.text.strip()
-            logger.info(f"Movie title: {movie_title}")
+            logger.info(f"{movie_id} - Movie title: {movie_title}")
 
             # Wait for and extract release date
             release_date_element = self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '//li[@data-testid="title-details-releasedate"]//a[@class="ipc-metadata-list-item__list-content-item ipc-metadata-list-item__list-content-item--link"]'))
             )
             release_date = release_date_element.text.split(" (")[0].strip()
-            logger.info(f"Release date: {release_date}")
+            logger.info(f"{movie_id} - Release date: {release_date}")
 
             return movie_title, release_date
 
         except Exception as e:
-            logger.error(f"Failed to get metadata: {e}")
+            logger.error(f"{movie_id} - Failed to get metadata: {e}")
             return None
 
 
-    def get_number_of_reviews(self, raw_movie_id):
+    def get_number_of_reviews(self, movie_id):
         try:
-            movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-
             # Load review page
-            self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
+            self.driver.get(f"https://www.imdb.com/title/{movie_id}/reviews")
 
             # Wait for, extract and parse the number of reviews
             reviews_element = self.wait.until(
@@ -90,47 +105,56 @@ class IMDb:
             if "reviews" in reviews_text:
                 total_reviews = reviews_text.split(" reviews")[0]    # Remove the unit
                 total_reviews = total_reviews.replace(",", "")       # Remove the comma for numbers >999
-                logger.info(f"Reviews: {total_reviews}")
+                logger.info(f"{movie_id} - Reviews: {total_reviews}")
                 return int(total_reviews)                            # Convert to integer
             else:
-                logger.info(f"Could not parse review count from text: '{reviews_text}'")
+                logger.warning(f"{movie_id} - Could not parse review count from text: '{reviews_text}'")
                 return None
 
         except Exception as e:
-            logger.error(f"Failed to get number of reviews: {e}")
+            logger.error(f"{movie_id} - Failed to get number of reviews: {e}")
             return None
 
 
-    def get_reviews(self, raw_movie_id, total_reviews):
-        movie_id = IMDb.restore_leading_zeros(raw_movie_id, 7)
-
+    def get_reviews(self, movie_id, total_reviews):
         # Load reviews page
-        self.driver.get(f"https://www.imdb.com/title/tt{movie_id}/reviews")
-        logger.info("Scrapping reviews")
+        self.driver.get(f"https://www.imdb.com/title/{movie_id}/reviews")
+        logger.info(f"{movie_id} - Scrapping reviews")
         time.sleep(10)
 
-        # Click the button to display all reviews, using JavaScript to avoid interception issues
         if total_reviews > 25:
+            # Click the button to display all reviews, using JavaScript to avoid interception issues
             try:
                 all_button = self.wait.until(
                     EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "All")]]'))
                 )
                 self.driver.execute_script("arguments[0].click();", all_button)
-                logger.info("Attempting to display all reviews")
+                logger.info(f"{movie_id} - Clicking the button to display all reviews")
             except Exception as e:
-                logger.warning(f"Button for displaying all reviews not found or not clickable: {e}")
+                logger.warning(f"{movie_id} - Button for displaying all reviews not found or not clickable: {e}")
 
-        # Scroll down to compensate for lazy loading
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
-        while True:
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            logger.info("Scrolling down...")
-            time.sleep(2)  # Give time for new reviews to load
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break  # Stop when no new content loads
-            last_height = new_height
+            # Scroll down to compensate for lazy loading
+            last_height = self.driver.execute_script("return document.body.scrollHeight")
+            while True:
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                logger.debug(f"{movie_id} - Scrolling down...")
+                time.sleep(2)  # Give time for new reviews to load
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    break  # Stop when no new content loads
+                last_height = new_height
 
+            # Click the button to display remaining reviews
+            try:
+                all_button = self.wait.until(
+                    EC.element_to_be_clickable((By.XPATH, '//span[contains(@class, "ipc-see-more")]//button[.//span[contains(text(), "more")]]'))
+                )
+                self.driver.execute_script("arguments[0].click();", all_button)
+                logger.info(f"{movie_id} - Clicking the button to display last reviews")
+                time.sleep(5)  # Give time for last reviews to load
+            except Exception:
+                logger.warning(f"{movie_id} - Button for displaying last reviews not found or not clickable")
+        
         # Loop through each review and extract information
         soup = BeautifulSoup(self.driver.page_source, "html.parser")
         reviews = soup.find_all("article", class_="user-review-item")
@@ -141,7 +165,7 @@ class IMDb:
                 permalink_tag = review.find("a", class_="ipc-link ipc-link--base", attrs={"data-testid": "permalink-link"})
                 review_id = None
                 if permalink_tag:
-                    identifier_match = re.search(r"/rw(\d+)", permalink_tag["href"])
+                    identifier_match = re.search(r"/(rw\d+)", permalink_tag["href"])
                     if identifier_match:
                         review_id = identifier_match.group(1)
 
@@ -190,20 +214,18 @@ class IMDb:
                     "last_update": datetime.now().strftime("%Y%m%d_%H%M%S")
                 })
             except Exception as e:
-                logger.error(f"Failed to extract data for a review: {e}")
+                logger.error(f"{movie_id} - Failed to extract data for a review: {e}")
                 continue
 
         # Create a dataframe from the collected data
         reviews_df = pd.DataFrame(data)
-        logger.info(f"Extracted {len(reviews_df)} reviews")
+        logger.info(f"{movie_id} - Extracted {len(reviews_df)} reviews")
         return reviews_df
 
 
-    def get_spoiler(self, raw_review_id):
-        review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
-
+    def get_spoiler(self, review_id, movie_id):
         # Load review page
-        self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
+        self.driver.get(f"https://www.imdb.com/review/{review_id}/")
         time.sleep(2)  # Allow page to load
 
         try:
@@ -216,17 +238,15 @@ class IMDb:
             text = text_element.text.strip()
             return text
         except Exception as e:
-            logger.error(f"Failed to unspoil review {review_id}: {e}")
+            logger.error(f"{movie_id} - Failed to unspoil review {review_id}: {e}")
             return None
 
 
-    def get_votes(self, raw_review_id):
-        review_id = IMDb.restore_leading_zeros(raw_review_id, 8)
-
+    def get_votes(self, review_id, movie_id):
         # Load review page
-        self.driver.get(f"https://www.imdb.com/review/rw{review_id}/")
+        self.driver.get(f"https://www.imdb.com/review/{review_id}/")
         time.sleep(2)  # Allow page to load
-        logger.info(f"Getting exact votes for review #{review_id}")
+        logger.debug(f"{movie_id} - Getting exact votes for review #{review_id}")
 
         # Extract votes
         try:
@@ -240,13 +260,5 @@ class IMDb:
             return upvotes, downvotes
 
         except Exception as e:
-            logger.error(f"Failed to get exact votes for review {review_id}: {e}")
+            logger.error(f"{movie_id} - Failed to get exact votes for review {review_id}: {e}")
             return None
-
-
-    def close(self):
-        if hasattr(self, 'driver'):
-            self.driver.quit()
-            shutil.rmtree(self.temp_profile_dir, ignore_errors=True)
-            logger.info("Browser closed")
-            logger.debug(f"Temp directory ({self.temp_profile_dir}) cleaned up")

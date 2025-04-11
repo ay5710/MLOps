@@ -1,27 +1,92 @@
-import schedule
+import multiprocessing
 import subprocess
 import time
+import threading
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+from src.utils.db import PostgreSQLDatabase
 from src.utils.logger import setup_logging, get_backend_logger
-
 
 setup_logging()
 logger = get_backend_logger()
-logger.info("Launching scheduler to run every exact hour")
+logger.info("Launching scheduler for movie processing and backups")
+
+max_concurrent_scripts = 5
+processing_lock = threading.Lock()
+active_processes = set()
 
 
-def run_main_py():
+def run_movie_script(movie_id):
+    """Runs the main script for a single movie."""
+    with processing_lock:
+        if movie_id in active_processes:
+            logger.warning(f"Script already running for movie #{movie_id}. Skipping...")
+            return
+        active_processes.add(movie_id)
+
     try:
-        subprocess.run(["python", "main.py"], check=True)  # Raise an exception if the subprocess returns a nonzero exit code
-        logger.info("Executed main.py")
+        command = f"python main.py --movie_id '{movie_id}'"
+        logger.info(f"{movie_id} - Launching main script...")
+        subprocess.run(command, shell=True, check=True)
+        logger.debug(f"{movie_id} - Main script finished")
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error executing main.py: {e}")
-    except FileNotFoundError:
-        logger.error("Main.py not found")
+        logger.error(f"{movie_id} - Failed launching main script: {e}")
+    finally:
+        with processing_lock:
+            active_processes.remove(movie_id)
 
-# Schedule the job to run at the start of every hour
-schedule.every().hour.at(":00").do(run_main_py)
 
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+def process_movie(movie_id):
+    """Wrapper to call run_movie_script for multiprocessing."""
+    run_movie_script(movie_id)
+
+
+def process_movies(movies_id):
+    """Manages concurrent execution of movie scripts."""
+    logger.info(f"Processing {len(movies_id)} movies with {max_concurrent_scripts} concurrent workers")
+    with multiprocessing.Pool(processes=max_concurrent_scripts) as pool:
+        pool.map(process_movie, list(movies_id))
+    logger.info("All movie processing completed")
+
+
+def backup_function():
+    """Runs the backup script."""
+    try:
+        subprocess.run("python -m src.backup", shell=True, check=True)
+        logger.info("Backup completed successfully.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed running backup: {e}")
+
+
+def schedule_tasks():
+    """Schedules the movie processing and backup."""
+    scheduler = BackgroundScheduler()
+
+    def scheduled_movie_processing():
+        with PostgreSQLDatabase() as db:
+            movies_id = set(movie[0] for movie in db.query_data('movies'))
+            if movies_id:
+                process_movies(movies_id)
+            else:
+                logger.warning("No movies found in the database to process")
+
+    # Schedule movie processing to run at the top of every hour (0th minute)
+    scheduler.add_job(scheduled_movie_processing, CronTrigger(minute=0))
+
+    # Schedule backup to run every hour at the 50th minute
+    scheduler.add_job(backup_function, CronTrigger(minute=50))
+
+    scheduler.start()
+
+    try:
+        logger.info("Scheduler started. Press Ctrl+C to exit.")
+        while True:
+            time.sleep(1)
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Shutting down scheduler...")
+        scheduler.shutdown()
+
+
+if __name__ == '__main__':
+    schedule_tasks()

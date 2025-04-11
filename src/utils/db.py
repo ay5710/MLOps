@@ -27,43 +27,29 @@ class PostgreSQLDatabase:
         self.cursor = None
 
 
-    def connect(self):
+    def __enter__(self):
         """
         Establish a connection to the PostgreSQL database
         """
         try:
             self.connection = psycopg.connect(**self.connection_params)
             self.cursor = self.connection.cursor()
-            logger.info(f"Successfully connected to {self.connection_params['host']}")
+            logger.debug(f"Successfully connected to {self.connection_params['host']}")
+            return self
         except (Exception, psycopg.Error) as error:
             logger.error(f"Failed connecting to {self.connection_params['host']}: {error}")
+            raise
 
 
-    def ping(self):
-        """
-        Pings the database to keep the connection alive or re-establish it if necessary.
-        """
-        try:
-            if self.connection is None or self.connection.closed:
-                logger.warning("Connection is closed or None, reconnecting...")
-                self.connect()
-            else:
-                with self.connection.cursor() as cur:
-                    cur.execute("SELECT 1")
-                    logger.debug("Pinging db")
-        except (Exception, psycopg.Error) as error:
-            logger.warning(f"Ping failed: {error}. Reconnecting...")
-            self.connect()
-
-
-    def close_connection(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         """
         Close database connection and cursor
         """
-        if self.connection:
+        if self.cursor:
             self.cursor.close()
+        if self.connection:
             self.connection.close()
-            logger.info("Database connection closed")
+        logger.debug("Database connection closed")
 
 
 ######################################
@@ -161,7 +147,7 @@ class PostgreSQLDatabase:
 ######################################
 
 
-    def insert_data(self, table_name, data):
+    def insert_data(self, table_name, data, movie_id=None):
         """
         Insert data into a specified table
 
@@ -175,13 +161,19 @@ class PostgreSQLDatabase:
             self.cursor.executemany(insert_query, data)
             self.connection.commit()
             prompt = "1 row" if len(data) == 1 else f"{len(data)} rows"
-            logger.debug(f"Inserted {prompt} into {table_name}")
+            if movie_id:
+                logger.debug(f"{movie_id} - Inserted {prompt} into {table_name}")
+            else:
+                logger.debug(f"Inserted {prompt} into {table_name}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            logger.error(f"Failed inserting data: {error}")
+            if movie_id:
+                logger.error(f"{movie_id} - Failed inserting data: {error} ({str(error)})")
+            else:
+                logger.error(f"Failed inserting data: {error} ({str(error)})")
 
 
-    def remove_data(self, table_name, condition_column, condition_value):
+    def remove_data(self, table_name, condition_column, condition_value, movie_id=None):
         """
         Remove data from a specified table based on a condition
 
@@ -197,13 +189,19 @@ class PostgreSQLDatabase:
             row_count = self.cursor.rowcount
             self.connection.commit()
             prompt = "1 row" if row_count == 1 else f"{row_count} rows"
-            logger.debug(f"Deleted {prompt} from {table_name} where {condition_column} = {condition_value}")
+            if movie_id:
+                logger.debug(f"{movie_id} - Deleted {prompt} from {table_name} where {condition_column} = {condition_value}")
+            else:
+                logger.debug(f"Deleted {prompt} from {table_name} where {condition_column} = {condition_value}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            logger.error(f"Failed deleting data: {error}")
+            if movie_id:
+                logger.error(f"{movie_id} - Failed deleting data: {error}")
+            else:
+                logger.error(f"Failed deleting data: {error}")
 
 
-    def query_data(self, table_name, columns='*', condition=None):
+    def query_data(self, table_name, columns='*', condition=None, movie_id=None):
         """
         Query data from a specified table
 
@@ -216,25 +214,28 @@ class PostgreSQLDatabase:
             if columns == '*':
                 select_query = sql.SQL("SELECT * FROM {}").format(
                     sql.Identifier(table_name))
-                if condition:
-                    select_query = sql.SQL("SELECT * FROM {} WHERE {}").format(
-                        sql.Identifier(table_name),
-                        sql.SQL(condition))
             else:
                 select_query = sql.SQL("SELECT {} FROM {}").format(
                     sql.SQL(', ').join(sql.Identifier(col) for col in columns),
                     sql.Identifier(table_name))
-                if condition:
-                    select_query = sql.SQL("SELECT {} FROM {} WHERE {}").format(
-                        sql.SQL(', ').join(sql.Identifier(col) for col in columns),
-                        sql.Identifier(table_name),
-                        sql.SQL(condition))
+
+            # Append condition if provided
+            if condition:
+                select_query = sql.SQL("{} WHERE {}").format(select_query, sql.SQL(condition))
+
+            query_string = select_query.as_string(self.connection)
+            logger.debug(f"Executing SQL: {query_string}")
+        
             self.cursor.execute(select_query)
             results = self.cursor.fetchall()
             return results
+            
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            logger.error(f"Failed querying data: {error}")
+            if movie_id:
+                logger.error(f"{movie_id} - Failed querying data: {error}")
+            else:
+                logger.error(f"Failed querying data: {error}")
             return []
 
 
@@ -243,7 +244,7 @@ class PostgreSQLDatabase:
 ######################################
 
 
-    def upsert_movie_data(self, data):
+    def upsert_movie_data(self, data, movie_id):
         try:
             query = sql.SQL("""
                     INSERT INTO {} (movie_id, title, release_date, nb_reviews, scrapping_timestamp)
@@ -259,18 +260,18 @@ class PostgreSQLDatabase:
                     sql.Identifier('movies'))
             self.cursor.executemany(query, data)
             self.connection.commit()
-            logger.info("Upserted movie data successfully")
+            logger.info(f"{movie_id} - Upserted metadata successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            logger.error(f"Failed upserting metadata: {error}")
+            logger.error(f"{movie_id} - Failed upserting metadata: {error}")
 
 
-    def upsert_review_data(self, data):
+    def upsert_review_data(self, data, movie_id):
         try:
             query = """
             INSERT INTO reviews_raw (movie_id, review_id, author, title, text, rating, date, upvotes, downvotes, last_update, to_process)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (review_id) DO UPDATE
+            ON CONFLICT (author) DO UPDATE
             SET
                 title = EXCLUDED.title,
                 text = EXCLUDED.text,
@@ -285,29 +286,23 @@ class PostgreSQLDatabase:
             """
             self.cursor.executemany(query, data)
             self.connection.commit()
-            logger.info("Upserted reviews successfully")
+            logger.info(f"{movie_id} - Upserted reviews successfully")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            logger.error(f"Failed upserting reviews: {error}")
+            logger.error(f"{movie_id} - Failed upserting reviews: {error}")
 
 
-    def update_sentiment_data(self, data):
-        """
-        Insert data into a specified table, updating existing rows if review_id conflicts
-
-        :param table_name: Name of the table
-        :param data: List of tuples containing row data
-        """
+    def update_sentiment_data(self, data, movie_id):
         try:
             self.cursor.execute(sql.SQL("SELECT column_name FROM information_schema.columns WHERE table_name = 'reviews_sentiments' ORDER BY ordinal_position;"))
             columns = [row[0] for row in self.cursor.fetchall()]
             update_assignments = sql.SQL(', ').join(
                 sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
-                for col in columns if col != 'review_id')  # Exclude primary key from updates
+                for col in columns if col != 'author')  # Exclude primary key from updates
 
             insert_query = sql.SQL("""
                 INSERT INTO {} ({}) VALUES ({})
-                ON CONFLICT (review_id) DO UPDATE SET {}
+                ON CONFLICT (author) DO UPDATE SET {}
             """).format(
                 sql.Identifier('reviews_sentiments'),
                 sql.SQL(', ').join(map(sql.Identifier, columns)),
@@ -317,15 +312,15 @@ class PostgreSQLDatabase:
             self.connection.commit()
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            logger.error(f"Failed updating sentiment data: {error}")
+            logger.error(f"{movie_id} - Failed updating sentiment data: {error}")
 
 
-    def reset_indicator(self, review_id):
+    def reset_indicator(self, author, movie_id):
         try:
-            query = "UPDATE reviews_raw SET to_process = 0 WHERE review_id = %s"
-            self.cursor.execute(query, (review_id,))
+            query = "UPDATE reviews_raw SET to_process = 0 WHERE author = %s"
+            self.cursor.execute(query, (author,))
             self.connection.commit()
-            logger.debug(f"Reseted indicator for review #{review_id}")
+            logger.debug(f"{movie_id} - Reseted indicator for review by {author}")
         except (Exception, psycopg.Error) as error:
             self.connection.rollback()
-            logger.error(f"Failed resetting process indicator for review #{review_id}: {error}")
+            logger.error(f"{movie_id} - Failed resetting process indicator for review by {author}: {error}")
