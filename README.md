@@ -58,7 +58,7 @@ The state of the scheduler can be checked with `pgrep -fl scheduler.py`.
 #### With Docker
 A `docker-compose.yml` is provided which runs the tracker, the database and the dashboard as distinct services.
 
-An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`).
+An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`; `DB_HOST`must be set to `db`).
 
 ### Manage movies
 They can be added or removed with `poetry run python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb, e.g., `tt0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).

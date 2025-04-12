@@ -96,8 +96,11 @@ class s3:
 
     def load_latest_backup(self, table_name):
         # Look for a backup in S3
-        all_files = [f['name'] for f in self.fs.listdir(self.destination)]
-        backup_files = [f for f in all_files if f.startswith(f"{self.destination}{table_name}")]
+        try:
+            all_files = [f['name'] for f in self.fs.listdir(self.destination)]
+            backup_files = [f for f in all_files if f.startswith(f"{self.destination}{table_name}")]
+        except Exception as e:
+            logger.warning(f"Unable to access distant backup directory: {e}")
 
         if not backup_files:
             # Look for sample data locally

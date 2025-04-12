@@ -15,7 +15,13 @@ def test_s3():
             token=os.environ["AWS_SESSION_TOKEN"])
         bucket_name = 'maeldieudonne'
         destination = bucket_name + '/diffusion/'
-        fs.put("data/sample/movies.csv", destination, content_type="csv", encoding="utf-8")
-        fs.rm(f"{destination} + movies.csv")
+        target_file = destination + "movies.csv"
+        
+        try:
+            fs.put("data/sample/movies.csv", target_file, content_type="csv", encoding="utf-8")
+        finally:
+            if fs.exists(target_file):
+                fs.rm(target_file)
+
     except Exception as e:
         pytest.fail(f"s3 failed: {e}")
