@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import re
+import requests
 import shutil
 import tempfile
 import time
@@ -11,7 +12,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.ui import Select, WebDriverWait
 from src.utils.logger import get_backend_logger
 
 logger = get_backend_logger()
@@ -85,6 +86,24 @@ class IMDb:
             release_date = release_date_element.text.split(" (")[0].strip()
             logger.info(f"{movie_id} - Release date: {release_date}")
 
+            # Wait for and save cover
+            cover_element = self.wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.ipc-poster__poster-image img.ipc-image'))
+            )
+            cover_url = cover_element.get_attribute('src')
+
+            os.makedirs('data/images', exist_ok=True)
+            cover_path = f"data/images/{movie_id}.jpg"
+
+            response = requests.get(cover_url, stream=True)
+            if response.status_code == 200:
+                with open(cover_path, 'wb') as f:
+                    for chunk in response.iter_content(1024):
+                        f.write(chunk)
+                logger.info(f"{movie_id} - Cover successfully downloaded to {cover_path}")
+            else:
+                logger.warning(f"{movie_id} - Failed to download image, status code: {response.status_code}")
+            
             return movie_title, release_date
 
         except Exception as e:
@@ -123,6 +142,20 @@ class IMDb:
         time.sleep(10)
 
         if total_reviews > 25:
+            # Display last published reviews first
+            try:
+                sort_selector = self.wait.until(
+                    EC.presence_of_element_located((By.ID, "sort-by-selector"))
+                )
+                self.driver.execute_script("""
+                    const select = arguments[0];
+                    select.value = 'SUBMISSION_DATE';
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                """, sort_selector)
+                logger.info(f"{movie_id} - Sorted reviews by submission date")
+            except Exception as e:
+                logger.warning(f"{movie_id} - Failed to sort reviews by submission date: {e}")
+            
             # Click the button to display all reviews, using JavaScript to avoid interception issues
             try:
                 all_button = self.wait.until(

@@ -85,7 +85,7 @@ if new_movie == 1 or reviews_to_scrap > 0 or time_since_scrapping > 86400:
         empty_reviews = reviews_df[pd.isnull(reviews_df["text"]) | (reviews_df["text"].str.strip() == "")]
 
         if len(empty_reviews) > 0:
-            logger.warning(f"{movie_id} - Missing text for {len(empty_reviews)} reviews")
+            logger.info(f"{movie_id} - Missing text for {len(empty_reviews)} reviews")
             logger.info(f"{movie_id} - Getting text behind spoiler markups")
 
             for index, row in tqdm.tqdm(empty_reviews.iterrows(), total=len(empty_reviews), desc=f"{movie_id} - Processing empty reviews", miniters=10):

@@ -3,10 +3,10 @@ This project tracks the reception of movies based on user reviews published on [
 
 ## 1. Implementation
 There are 4 main components:
-- **Web scrapping**
-- **Aspect-based sentiment analysis**
-- **Dashboard**
-- **User management**
+- Web scrapping
+- Aspect-based sentiment analysis
+- Dashboard
+- User management
 
 Data collection is orchestrated by a scheduler.
 
@@ -22,8 +22,7 @@ app/
 ├── notebooks/
 ├── setup/
 │   ├── .env.template
-│   ├── db_init.py
-│   └── requirements.txt
+│   └── db_init.py
 ├── src/
 │   ├── analysis.py
 │   ├── backup.py    
@@ -34,9 +33,10 @@ app/
 │       ├── manage_movies.py
 │       └── s3.py
 ├── test/
+│       ├── backup_test.py
 │       └── connection_test.py
 ├── main.py
-├── scheduler.py</pre>
+└── scheduler.py</pre>
 
 ### Installation
 #### In the DataLab
@@ -58,7 +58,7 @@ The state of the scheduler can be checked with `pgrep -fl scheduler.py`.
 #### With Docker
 A `docker-compose.yml` is provided which runs the tracker, the database and the dashboard as distinct services.
 
-An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`; `DB_HOST`must be set to `db`).
+An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`; `DB_HOST` must be set to the name of the postgresql service in the `docker-compose`, by default, `db`).
 
 ### Manage movies
 They can be added or removed with `poetry run python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb, e.g., `tt0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).
