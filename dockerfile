@@ -46,4 +46,4 @@ COPY . /app/
 COPY ./setup/.env.template /app/.env
 
 # Make the scripts executable
-RUN chmod +x /app/main.py /app/scheduler.py /app/setup/db_init.py
+RUN chmod +x /app/setup/db_init.py /app/scheduler.py /app/main.py /app/streamlit.py

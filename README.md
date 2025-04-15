@@ -3,12 +3,12 @@ This project tracks the reception of movies based on user reviews published on [
 
 ## 1. Implementation
 There are 4 main components:
-- Web scrapping
+- Web scraping
 - Aspect-based sentiment analysis
 - Dashboard
 - User management
 
-Data is stored in a PostgreSQL database and saved in s3. A sample with 2 movies is provided.
+Data is stored in a PostgreSQL database and saved in the DataLab with s3. A sample with 2 movies is provided.
 
 Architecture:
 <pre>
@@ -26,7 +26,7 @@ app/
 │   ├── analysis.py
 │   ├── backup.py
 │   ├── manage_movies.py
-│   ├── scrapping.py
+│   ├── scraping.py
 │   └── utils/
 │       ├── db.py
 │       ├── logger.py
@@ -64,25 +64,23 @@ They can be added or removed with `poetry run python -m src.manage_movies --add 
 
 ## 2. Technical aspects
 
-### Scrapping
-Data must be retrieved from 3 different pages on the IMDB website: 
-- Main page of the movie for the metadata, including the number of published reviews
-- Main page of reviews, where only the 25 more popular reviews are displayed by default, where the actual reviews are sometimes hidden behind `<poiler>`markup, and where upvotes and downvotes are rounded above 999
-- Individual pages of reviews, where exact votes appear
+### scraping
+Data must be collected from three IMDB pages:
+- The movie’s main page for metadata, including the total number of reviews.
+- The main reviews page, which shows the 25 most popular reviews by default; some reviews are hidden behind `<spoiler>` tags, and vote counts over 999 are rounded.
+- Individual review pages, where exact vote counts are displayed.
 
-Made it necessary to interact with the webpages:
-- Display all reviews on the main reviews page => it turned out that the button for displaying all reviews stops at the closest multiple of 25, then another button must be clicked for the remaining reviews
-- Access text hidden behind `<spoiler>` markup => it turned out more reliable to do on the individual pages of reviews, although it is slower
+Interacting with the webpages was necessary:
+- To display all reviews on the main reviews page. It turned out the “Show all” button do not actually display all reviews: it stops at the nearest multiple of 25, requiring an additional click on the “Show more” button for remaining reviews.
+- To access text hidden behind `<spoiler>` tags, fetching the individual review pages proved more reliable, though slower.
 
-Scrapping proceeds as follows:
-- Every hour, scrap the main page to retrieve the metadata
-- If new reviews has been published, the movie have just been added to the db, or the last full scrapping is > 24h old, scrap the reviews main page
-- If spoiler markups or rounded votes are present, scrap the corresponding individual review pages
-- Update the tables, while indicating if reviews are new or have been edited so they can be analyzed
+The scraping process follows these steps:
+- Every hour, scrape the main page to retrieve metadata.
+- If new reviews have been published, the movie was just added to the database, or the last full scrape is older than 24 hours, scrape the main reviews page.
+- If spoiler tags or rounded vote counts are detected, scrape the corresponding individual review pages.
+- Update the database tables, flagging reviews as new or edited for sentiment analysis.
 
-A scheduler launches a script per-movie every hour, while ensuring that no more than 5 movies are scrapped concurrently to avoid overloading the system, and that the database is backed up every hour.
-
-For some movies, this process yields small discrepancies between the number of reviews declared on the main page and the effectively scrapped from the reviews page. Cursory investigation yielded no explanation for this. It could be that in certain conditions the review page fails to load all reviews? A fix would then be to click on the button to set a different reviews order (e.g., chronological instead of by upvotes).
+A scheduler launches one script per movie every hour, ensuring no more than five movies are scraped concurrently to avoid overloading the system. The database is also backed up hourly. For some movies, small discrepancies were observed between the number of reviews listed on the main page and the number actually scraped from the reviews page. A cursory investigation found no clear explanation. 
 
 ### Sentiment analysis
 We want to determine the opinions expressed in the reviews regarding 5 main features of the movies:
@@ -98,7 +96,7 @@ The only workable solution is to offload sentiment analysis to a **generative LL
 
 ### Dashboard
 With Streamlit. Includes...
-- Header presenting the movie + time since last scrapping
+- Header presenting the movie + time since last scraping
 - Total number of reviews + graph of their publication date
 - Average grade + graph of its evolution over time
 - For each sentiment + overall sentiment: average score + histogram
@@ -108,15 +106,7 @@ With Streamlit. Includes...
 Create different clients able to track different movies, with a logging interface to the dashboard
 
 ## 3. Possible improvements
-Which could have been done but have not...
-- Use playwright for scrapping (more flexible than Selenium)
-- Implement (more) tests; but not access to the db in GitHub so can't be run from there, as part of workflows
-
-### To do
-- *Optionnal:* use ArgoCD
-- *Optionnal:* create an API
-
-### Checklist
-- The code is formatted properly => use Flake8
-- Logs are collected
-- A test procedure is available
+- Add an admin interface to the dashboard allowing to monitor the backend (including API costs) and manage users
+- Fully separate the backend and frontend, using an API to communicate between them (with permissions depending on users)
+- Use playwright for scraping, which is more flexible than Selenium
+- Implement more tests

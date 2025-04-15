@@ -20,7 +20,27 @@ services:
     volumes:
       - ./tracker/logs:/app/logs
     restart: unless-stopped
-    command: ["/bin/bash", "-c", "until pg_isready -h db -p 5432; do echo 'Waiting for database...'; sleep 5; done && python setup/db_init.py && python scheduler.py"]
+    command: ["/bin/bash", "-c", "until pg_isready -h db -p 5432; do echo 'Waiting for database...'; sleep 5; done && poetry run python setup/db_init.py && poetry run python scheduler.py"]
+    networks:
+      - mlops-network
+
+  dashboard:
+    image: maeldieudonne/mlops:latest
+    depends_on:
+      - db
+      - tracker
+    environment:
+      - DB_NAME
+      - DB_USER
+      - DB_PASSWORD
+      - DB_HOST
+      - PYTHONPATH=/app
+    volumes:
+      - ./dashboard/logs:/app/logs
+    ports:
+      - 8501:8501
+    restart: unless-stopped
+    command: ["/bin/bash", "-c", "until pg_isready -h db -p 5432; do echo 'Waiting for database...'; sleep 5; done && poetry run streamlit run streamlit.py --server.port=8501"]
     networks:
       - mlops-network
 
