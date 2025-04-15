@@ -49,6 +49,15 @@ class s3:
         except Exception as e:
             logger.error(f"Failed uploading {file_path} to {self.destination}: {e}")
 
+    
+    def upload_covers(self, local_directory='data/covers'):
+        try:
+            s3_target = os.path.join(self.destination, 'covers').replace("\\", "/")
+            self.fs.put(local_directory, s3_target, recursive=True)
+            logger.info(f"Successfully synced covers to s3")
+        except Exception as e:
+            logger.error(f"Failed to sync covers to s3: {e}")
+
 
     def clean_backup_directory(self):
         pattern = re.compile(r"([^/]+)_(\d{8}_\d{6})\.parquet$")
@@ -118,3 +127,14 @@ class s3:
                 backup = pd.read_parquet(f)
             logger.info(f"Loading distant backup for {table_name}: {timestamp}")
             return backup
+
+
+    def restore_covers(self, local_directory='data/covers'):
+        try:
+            s3_source = os.path.join(self.destination, 'covers', '*').replace("\\", "/")
+            os.makedirs(local_directory, exist_ok=True)
+
+            self.fs.get(s3_source, local_directory, recursive=True)
+            logger.info(f"Successfully restored covers from s3")
+        except Exception as e:
+            logger.error(f"Failed to restore covers from s3: {e}")

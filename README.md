@@ -8,8 +8,6 @@ There are 4 main components:
 - Dashboard
 - User management
 
-Data collection is orchestrated by a scheduler.
-
 Data is stored in a PostgreSQL database and saved in s3. A sample with 2 movies is provided.
 
 Architecture:
@@ -17,6 +15,7 @@ Architecture:
 app/
 ├── data/
 │   ├── backup/
+│   ├── covers/    
 │   └── sample/
 ├── logs/
 ├── notebooks/
@@ -25,12 +24,12 @@ app/
 │   └── db_init.py
 ├── src/
 │   ├── analysis.py
-│   ├── backup.py    
+│   ├── backup.py
+│   ├── manage_movies.py
 │   ├── scrapping.py
 │   └── utils/
 │       ├── db.py
 │       ├── logger.py
-│       ├── manage_movies.py
 │       └── s3.py
 ├── test/
 │       ├── backup_test.py
@@ -61,15 +60,15 @@ A `docker-compose.yml` is provided which runs the tracker, the database and the 
 An `.env` file is required, including parameters for the backup on S3 which can be retrieved [here](https://datalab.sspcloud.fr/account/storage) (see `setup/.env.template`; `DB_HOST` must be set to the name of the postgresql service in the `docker-compose`, by default, `db`).
 
 ### Manage movies
-They can be added or removed with `poetry run python -m src.utils.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb, e.g., `tt0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).
+They can be added or removed with `poetry run python -m src.manage_movies --add '<movie_id_1>' '<movie_id_2>' --remove '<movie_id_3>'` (where `<movie_id>` must be retrieved manually from IMDb, e.g., `tt0033467` for [Citizen Kane](https://www.imdb.com/title/tt0033467/?ref_=fn_all_ttl_1)).
 
 ## 2. Technical aspects
 
 ### Scrapping
 Data must be retrieved from 3 different pages on the IMDB website: 
-- main page of the movie for the metadata, including the number of published reviews
-- main page of reviews, where only the 25 more popular reviews are displayed by default, where the actual reviews are sometimes hidden behind `<poiler>`markup, and where upvotes and downvotes are rounded above 999
-- individual pages of reviews, where exact votes appear
+- Main page of the movie for the metadata, including the number of published reviews
+- Main page of reviews, where only the 25 more popular reviews are displayed by default, where the actual reviews are sometimes hidden behind `<poiler>`markup, and where upvotes and downvotes are rounded above 999
+- Individual pages of reviews, where exact votes appear
 
 Made it necessary to interact with the webpages:
 - Display all reviews on the main reviews page => it turned out that the button for displaying all reviews stops at the closest multiple of 25, then another button must be clicked for the remaining reviews
@@ -98,11 +97,7 @@ Such a task is called **aspect-base sentiment analysis**. It is a seriously diff
 The only workable solution is to offload sentiment analysis to a **generative LLM**. A cursory experimentation proved that this works well with an adequate prompt. However, it requires very large models, that cannot be run locally but must be called through APIs. The current implementation relies on gpt-4o-mini from OpenAI, which is inexpensive ($0.15 / M tokens) but rather slow. An alternative would be to use Gemini from Google, which has a free tier, albeit with rates limits and requiring an API key as well.
 
 ### Dashboard
-With Streamlit? Apache superset?
-
-***Would it be easier to store `movie_id` in the `reviews_sentiments` table?***
-
-With...
+With Streamlit. Includes...
 - Header presenting the movie + time since last scrapping
 - Total number of reviews + graph of their publication date
 - Average grade + graph of its evolution over time

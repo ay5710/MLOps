@@ -92,17 +92,17 @@ class IMDb:
             )
             cover_url = cover_element.get_attribute('src')
 
-            os.makedirs('data/images', exist_ok=True)
-            cover_path = f"data/images/{movie_id}.jpg"
+            os.makedirs('data/covers', exist_ok=True)
+            cover_path = f"data/covers/{movie_id}.jpg"
 
             response = requests.get(cover_url, stream=True)
             if response.status_code == 200:
                 with open(cover_path, 'wb') as f:
                     for chunk in response.iter_content(1024):
                         f.write(chunk)
-                logger.info(f"{movie_id} - Cover successfully downloaded to {cover_path}")
+                logger.info(f"{movie_id} - Cover successfully downloaded")
             else:
-                logger.warning(f"{movie_id} - Failed to download image, status code: {response.status_code}")
+                logger.warning(f"{movie_id} - Failed to download cover, status code: {response.status_code}")
             
             return movie_title, release_date
 

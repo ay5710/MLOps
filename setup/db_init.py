@@ -12,10 +12,6 @@ logger = get_backend_logger()
 logger.info("Initializing databases...")
 
 
-# Connect to database and S3
-s3 = s3()
-
-
 # Drop existing tables for a clean start (in reverse order of dependency)
 for table in ['reviews_sentiments', 'reviews_raw', 'movies']:
     with PostgreSQLDatabase() as db:
@@ -56,11 +52,15 @@ with PostgreSQLDatabase() as db:
         'overall': 'INTEGER'})
 
 
-# NaNs must be converted to None / NULL before being passed to postgreSQL
+# Restore covers and data
+s3 = s3()
+s3.restore_covers()
+
 for table in ['movies', 'reviews_raw', 'reviews_sentiments']:
     backup_df = s3.load_latest_backup(table)
 
     if backup_df is not None:
+    # NaNs must be converted to None / NULL before being passed to postgreSQL
         if table == 'reviews_raw':
             # Replace NaN values with None in the rating column (not applicable to the df as whole because of str columns)
             backup_df['rating'] = backup_df['rating'].astype('float').replace({np.nan: None})
@@ -89,3 +89,4 @@ for table in ['movies', 'reviews_raw', 'reviews_sentiments']:
 
         with PostgreSQLDatabase() as db:
             db.insert_data(table, backup_data)
+
